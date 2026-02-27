@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Journey 3D</title>
+    <link rel="stylesheet" href="./style.css" />
+    
+    <!-- Import Map for bare modules -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "three/addons/": "./node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- UI Container for HUD, Menus, etc., over the 3D Canvas -->
+    <div id="ui-container">
+      <div id="start-screen" class="screen">
+        <h1>Space Journey 3D</h1>
+        <p id="loading-text">Loading Assets... 0%</p>
+        <button id="start-btn" class="hidden">Start Game</button>
+      </div>
+      <div id="hud" class="screen hidden">
+        <div class="stats-left">
+          <div class="score">Score: <span id="score-val">0</span></div>
+          <div class="heat-wrapper">
+            <span>Heat:</span>
+            <div id="heat-bar-bg">
+              <div id="heat-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="health">Health: <span id="health-val">100</span>%</div>
+      </div>
+      <div id="wave-banner" class="screen hidden wave-banner">
+        <h2 id="wave-val">WAVE 1</h2>
+      </div>
+    </div>
+    
+    <!-- The Three.js Canvas will be appended to the body by the script -->
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

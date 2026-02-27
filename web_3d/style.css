@@ -1,0 +1,186 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  /* Prevent scrolling */
+  background-color: #000;
+  font-family: 'Orbitron', sans-serif;
+  color: white;
+}
+
+canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+#ui-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10;
+  pointer-events: none;
+  /* Let clicks pass through to canvas when appropriate */
+}
+
+.screen {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  transition: opacity 0.5s ease;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Start Screen */
+#start-screen h1 {
+  font-size: 4rem;
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  color: #00ffcc;
+  text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+}
+
+#start-btn {
+  pointer-events: auto;
+  padding: 15px 40px;
+  font-size: 1.5rem;
+  font-family: inherit;
+  background: transparent;
+  color: #fff;
+  border: 2px solid #00ffcc;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+  transition: all 0.3s ease;
+}
+
+#start-btn:hover {
+  background: #00ffcc;
+  color: #000;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.8);
+  transform: scale(1.05);
+}
+
+#hud {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 40px;
+  background: linear-gradient(to bottom, rgba(0, 20, 40, 0.8) 0%, transparent 100%);
+  border-bottom: 2px solid rgba(0, 255, 204, 0.3);
+  backdrop-filter: blur(2px);
+  height: 80px;
+}
+
+#hud>div {
+  font-size: 1.8rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8), 0 0 5px currentColor;
+}
+
+.stats-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heat-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem !important;
+  color: #fff;
+}
+
+#heat-bar-bg {
+  width: 150px;
+  height: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#heat-bar {
+  width: 0%;
+  height: 100%;
+  background: #ffff00;
+  transition: width 0.1s linear, background-color 0.2s ease;
+}
+
+.overheated #heat-bar {
+  animation: overheat-flash 0.2s infinite alternate;
+}
+
+@keyframes overheat-flash {
+  from {
+    background-color: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+  }
+
+  to {
+    background-color: #880000;
+    box-shadow: none;
+  }
+}
+
+.score {
+  color: #00ffcc;
+}
+
+.health {
+  color: #ff3366;
+}
+
+/* Wave Banner */
+#wave-banner {
+  background: transparent;
+  backdrop-filter: none;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.3s ease-in-out;
+}
+
+#wave-banner h2 {
+  font-size: 5rem;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
