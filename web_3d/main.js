@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Player, Laser, PowerUp } from './entities.js';
 import { loadAssets, loadingManager, sounds } from './src/assets.js';
 import { WaveManager } from './src/managers.js';
-import { ExplosionManager } from './src/effects.js';
+import { ExplosionManager, EngineTrail } from './src/effects.js';
 
 // --- GAME STATE ---
 let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
@@ -83,6 +83,7 @@ let enemies = [];
 let powerups = [];
 const waveManager = new WaveManager(scene);
 const explosionManager = new ExplosionManager(scene);
+const engineTrail = new EngineTrail(scene);
 
 // Screen shake params
 let shakeDuration = 0;
@@ -168,6 +169,10 @@ function animate() {
 
         // Update Player
         player.update(keys, lasers);
+
+        // Spawn engine trails if player is moving or idling
+        engineTrail.spawnTrail(player.mesh.position, player.isDashing);
+        engineTrail.update();
 
         // Update Heat UI
         heatBar.style.width = `${player.heat}%`;
