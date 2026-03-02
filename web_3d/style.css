@@ -258,6 +258,19 @@ canvas {
   }
 }
 
+/* Pause Screen */
+#pause-screen {
+  z-index: 20;
+}
+
+#pause-screen h2 {
+  font-size: 4rem;
+  color: #fff;
+  letter-spacing: 5px;
+  text-shadow: 0 0 15px currentColor;
+  margin-bottom: 20px;
+}
+
 /* Mobile Controls */
 #mobile-ui {
   position: absolute;

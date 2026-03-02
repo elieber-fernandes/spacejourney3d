@@ -35,6 +35,19 @@
           </div>
         </div>
 
+        <div id="hangar-container" class="hidden" style="margin-top: 20px;">
+          <h3>HANGAR & SHIPS</h3>
+          <div class="ship-selector">
+            <button id="prev-ship-btn" class="upgrade-btn" style="display:inline-block; width:auto;">&lt;</button>
+            <div id="ship-info" style="display:inline-block; margin: 0 15px; text-align:center; min-width: 150px;">
+              <h4 id="ship-name" style="margin:0; color:#00ffcc;">Basic Ship</h4>
+              <p id="ship-status" style="margin:5px 0; font-size:0.9rem;">Owned</p>
+            </div>
+            <button id="next-ship-btn" class="upgrade-btn" style="display:inline-block; width:auto;">&gt;</button>
+          </div>
+          <button id="buy-ship-btn" class="upgrade-btn" style="margin-top: 10px; display:none;">Buy for <span id="ship-cost">5000</span> Scrap</button>
+        </div>
+
         <button id="start-btn" class="hidden">Deploy Ship</button>
       </div>
       <div id="hud" class="screen hidden">
@@ -62,6 +75,12 @@
 
       <div id="wave-banner" class="screen hidden wave-banner">
         <h2 id="wave-val">WAVE 1</h2>
+      </div>
+
+      <div id="pause-screen" class="screen hidden">
+        <h2>PAUSED</h2>
+        <button id="resume-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Resume</button>
+        <button id="quit-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Return to Base</button>
       </div>
     </div>
     

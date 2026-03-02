@@ -5,7 +5,7 @@ import { WaveManager } from './src/managers.js';
 import { ExplosionManager, EngineTrail } from './src/effects.js';
 
 // --- GAME STATE ---
-let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER', 'PAUSED'
 let score = 0;
 let level = 1;
 
@@ -16,13 +16,57 @@ let upgHealth = parseInt(localStorage.getItem('space_upg_health')) || 0;
 let upgHeat = parseInt(localStorage.getItem('space_upg_heat')) || 0;
 let upgMagnet = parseInt(localStorage.getItem('space_upg_magnet')) || 0;
 
+// Ships
+let unlockedShips = JSON.parse(localStorage.getItem('space_unlocked_ships')) || [0];
+let currentShipIndex = parseInt(localStorage.getItem('space_current_ship')) || 0;
+
 function saveProgression() {
     localStorage.setItem('space_highscore', highScore);
     localStorage.setItem('space_scrap', scrap);
     localStorage.setItem('space_upg_health', upgHealth);
     localStorage.setItem('space_upg_heat', upgHeat);
     localStorage.setItem('space_upg_magnet', upgMagnet);
+    localStorage.setItem('space_unlocked_ships', JSON.stringify(unlockedShips));
+    localStorage.setItem('space_current_ship', currentShipIndex);
 }
+
+// --- SHIPS DEFINITION ---
+const SHIPS = [
+    {
+        name: "Basic Ship",
+        cost: 0,
+        color: 0x00ffff,
+        createMesh: () => {
+            const geo = new THREE.ConeGeometry(1.5, 3, 8);
+            geo.rotateX(-Math.PI / 2);
+            return geo;
+        },
+        stats: { hpBase: 100, speedBase: 0.6, coolingBase: 0.5, heatCostMult: 1.0 }
+    },
+    {
+        name: "Speedster",
+        cost: 5000,
+        color: 0xffff00,
+        createMesh: () => {
+            // Sleeker, thinner design
+            const geo = new THREE.ConeGeometry(1.0, 4, 4);
+            geo.rotateX(-Math.PI / 2);
+            return geo;
+        },
+        stats: { hpBase: 70, speedBase: 0.8, coolingBase: 0.6, heatCostMult: 0.8 } // Faster, better cooling, less heat cost, but fragile
+    },
+    {
+        name: "Heavy Cruiser",
+        cost: 10000,
+        color: 0xff0000,
+        createMesh: () => {
+            // Bulky, wide design
+            const geo = new THREE.BoxGeometry(3, 1.5, 3);
+            return geo;
+        },
+        stats: { hpBase: 200, speedBase: 0.4, coolingBase: 0.4, heatCostMult: 1.5 } // Tanky, slow, overheats slightly faster (or slow cool)
+    }
+];
 
 // --- DOM ELEMENTS ---
 const startScreen = document.getElementById('start-screen');
@@ -39,6 +83,20 @@ const shopContainer = document.getElementById('shop-container');
 const scrapVal = document.getElementById('scrap-val');
 const highScoreDisplay = document.getElementById('high-score-display');
 const highScoreVal = document.getElementById('high-score-val');
+const pauseScreen = document.getElementById('pause-screen');
+const resumeBtn = document.getElementById('resume-btn');
+const quitBtn = document.getElementById('quit-btn');
+
+// Hangar UI
+const hangarContainer = document.getElementById('hangar-container');
+const prevShipBtn = document.getElementById('prev-ship-btn');
+const nextShipBtn = document.getElementById('next-ship-btn');
+const shipName = document.getElementById('ship-name');
+const shipStatus = document.getElementById('ship-status');
+const buyShipBtn = document.getElementById('buy-ship-btn');
+const shipCost = document.getElementById('ship-cost');
+
+let viewingShipIndex = currentShipIndex;
 
 // --- SOUNDS FUNC ---
 function playSound(audioBuffer, volume = 0.5) {
@@ -109,10 +167,12 @@ const engineTrail = new EngineTrail(scene);
 let shakeDuration = 0;
 
 // --- INPUT HANDLING ---
-const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, Space: false, ShiftLeft: false, ShiftRight: false, Shift: false };
+const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, Space: false, ShiftLeft: false, ShiftRight: false, Shift: false, Escape: false };
 
 window.addEventListener('keydown', (e) => {
-    if (keys.hasOwnProperty(e.key) || e.code === 'Space' || e.key === 'Shift') {
+    if (e.key === 'Escape') {
+        togglePause();
+    } else if (keys.hasOwnProperty(e.key) || e.code === 'Space' || e.key === 'Shift') {
         if (e.code === 'Space') {
             e.preventDefault(); // Prevent Space from pressing focused buttons or scrolling
             keys['Space'] = true;
@@ -245,6 +305,34 @@ joystickZone.addEventListener('touchcancel', (e) => {
             resetJoystick();
         }
     }
+});
+
+// --- PAUSE LOGIC ---
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        pauseScreen.classList.remove('hidden');
+    } else if (gameState === 'PAUSED') {
+        resumeGame();
+    }
+}
+
+function resumeGame() {
+    gameState = 'PLAYING';
+    pauseScreen.classList.add('hidden');
+    // Important: we need to reset the 'lastTime' of our loop otherwise the delta will be huge 
+    // and things might teleport or break immediately upon unpausing. But we aren't using `dt` 
+    // strictly for movement at the moment (we are using fixed per-frame movement). 
+    // It's still good practice:
+    lastTime = Date.now();
+
+    // Also clear keys to prevent stuck inputs after pausing
+    for (let k in keys) keys[k] = false;
+}
+
+resumeBtn.addEventListener('click', resumeGame);
+quitBtn.addEventListener('click', () => {
+    location.reload();
 });
 
 // --- HELPER FUNC ---
@@ -552,8 +640,11 @@ function animate() {
                 obstacles.splice(i, 1);
             }
         }
+    } else if (gameState === 'PAUSED') {
+        // Just freeze the camera and let the renderer draw the frozen scene.
+        // We do not update entities or positions.
     } else {
-        // Idle animation
+        // Idle animation for START or GAMEOVER overworld
     }
 
     renderer.render(scene, camera);
@@ -628,6 +719,65 @@ if (upgBtnHealth) {
     });
 }
 
+// Hangar Logic
+function updateHangarUI() {
+    const ship = SHIPS[viewingShipIndex];
+    shipName.innerText = ship.name;
+    shipName.style.color = '#' + ship.color.toString(16).padStart(6, '0');
+
+    if (unlockedShips.includes(viewingShipIndex)) {
+        buyShipBtn.style.display = 'none';
+        if (currentShipIndex === viewingShipIndex) {
+            shipStatus.innerText = "EQUIPPED";
+            shipStatus.style.color = "#00ffcc";
+        } else {
+            shipStatus.innerText = "OWNED (Click to Equip)";
+            shipStatus.style.color = "#aaaaaa";
+            shipStatus.style.cursor = "pointer";
+
+            // Temporary one-time equip handler to avoid stacking
+            shipStatus.onclick = () => {
+                currentShipIndex = viewingShipIndex;
+                saveProgression();
+                updateHangarUI();
+            };
+        }
+    } else {
+        shipStatus.innerText = "LOCKED";
+        shipStatus.style.color = "#ff0000";
+        shipStatus.onclick = null;
+        shipStatus.style.cursor = "default";
+
+        buyShipBtn.style.display = 'inline-block';
+        shipCost.innerText = ship.cost;
+        buyShipBtn.disabled = scrap < ship.cost;
+    }
+}
+
+if (prevShipBtn && nextShipBtn && buyShipBtn) {
+    prevShipBtn.addEventListener('click', () => {
+        viewingShipIndex = (viewingShipIndex - 1 + SHIPS.length) % SHIPS.length;
+        updateHangarUI();
+    });
+
+    nextShipBtn.addEventListener('click', () => {
+        viewingShipIndex = (viewingShipIndex + 1) % SHIPS.length;
+        updateHangarUI();
+    });
+
+    buyShipBtn.addEventListener('click', () => {
+        const ship = SHIPS[viewingShipIndex];
+        if (scrap >= ship.cost && !unlockedShips.includes(viewingShipIndex)) {
+            scrap -= ship.cost;
+            unlockedShips.push(viewingShipIndex);
+            currentShipIndex = viewingShipIndex;
+            saveProgression();
+            updateShopUI(); // Updates top scrap counter too
+            updateHangarUI();
+        }
+    });
+}
+
 // --- UI INTERACTIONS ---
 startBtn.addEventListener('click', () => {
     startBtn.blur(); // Remove focus so Spacebar doesn't trigger it again
@@ -640,9 +790,20 @@ startBtn.addEventListener('click', () => {
         mobileUI.classList.remove('hidden');
     }
 
-    // Apply Upgrades to Player
-    player.maxHealth = 100 + (upgHealth * 20); // Each level +20 HP
-    player.heatCooldownRate = 0.5 + (upgHeat * 0.1); // Each level cools faster
+    // Apply Ship & Upgrades to Player
+    const currentShip = SHIPS[currentShipIndex];
+
+    // Visually update the player mesh
+    player.mesh.geometry.dispose();
+    player.mesh.geometry = currentShip.createMesh();
+    player.mesh.material.color.setHex(currentShip.color);
+
+    // Apply Stats
+    player.maxHealth = currentShip.stats.hpBase + (upgHealth * 20); // Each level +20 HP
+    player.heatCooldownRate = currentShip.stats.coolingBase + (upgHeat * 0.1); // Each level cools faster
+    player.maxSpeed = currentShip.stats.speedBase;
+    player.heatMultiplier = currentShip.stats.heatCostMult; // We will use this in shoot logic
+
     player.magnetRadius = 2.0 + (upgMagnet * 1.5); // Each level increases pickup radius
 
     player.reset();
@@ -680,6 +841,12 @@ loadAssets(() => {
         shopContainer.classList.remove('hidden');
         updateShopUI();
     }
+
+    if (hangarContainer) {
+        hangarContainer.classList.remove('hidden');
+        updateHangarUI();
+    }
+
     scene.background = new THREE.Color(0x000000);
 });
 

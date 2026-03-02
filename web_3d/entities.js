@@ -57,6 +57,7 @@ export class Player {
         if (this.tripleShotTimer > 0) this.tripleShotTimer--;
         if (this.speedBoostTimer > 0) this.speedBoostTimer--;
         if (this.spreadShotTimer > 0) this.spreadShotTimer--;
+        if (this.homingMissilesTimer > 0) this.homingMissilesTimer--;
 
         if (this.isOverheated) {
             // Must wait for it to fully cool down
@@ -71,6 +72,7 @@ export class Player {
                 if (this.tripleShotTimer > 0) heatIncrease = 1.2; // Plasma
                 else if (this.spreadShotTimer > 0) heatIncrease = 0.9; // Spread
                 else if (this.speedBoostTimer > 0) heatIncrease = 0.4; // Rapid
+                else if (this.homingMissilesTimer > 0) heatIncrease = 0.8; // Homing
 
                 this.heat += heatIncrease;
                 if (this.heat >= 100) {
@@ -143,7 +145,14 @@ export class Player {
 
         const now = Date.now();
         if (now - this.lastShot > this.shootDelay) {
-            if (this.spreadShotTimer > 0) {
+            if (this.homingMissilesTimer > 0) {
+                // Fire two homing missiles
+                const l1 = new HomingMissile(this.scene, this.mesh.position.clone());
+                l1.mesh.position.x -= 1;
+                const l2 = new HomingMissile(this.scene, this.mesh.position.clone());
+                l2.mesh.position.x += 1;
+                lasers.push(l1, l2);
+            } else if (this.spreadShotTimer > 0) {
                 // 5-way arc
                 const spreadAngles = [-0.4, -0.2, 0, 0.2, 0.4];
                 for (let a of spreadAngles) {
@@ -180,6 +189,7 @@ export class Player {
         this.tripleShotTimer = 0;
         this.speedBoostTimer = 0;
         this.spreadShotTimer = 0;
+        this.homingMissilesTimer = 0;
         this.heat = 0;
         this.isOverheated = false;
         this.currentPenalty = 0;
@@ -629,6 +639,7 @@ export class PowerUp {
         else if (type === 'plasma_shot') color = 0x00ffff; // Cyan plasma
         else if (type === 'rapid_fire') color = 0x00ff00; // Green rapid fire
         else if (type === 'spread_shot') color = 0xff00ff; // Magenta spread
+        else if (type === 'homing_missiles') color = 0xff9900; // Orange Homing Missiles
 
         const geo = new THREE.OctahedronGeometry(1);
         const mat = new THREE.MeshStandardMaterial({
@@ -665,6 +676,65 @@ export class PowerUp {
         this.scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
+    }
+}
+
+export class HomingMissile extends Laser {
+    constructor(scene, startPosition) {
+        super(scene, startPosition, 0);
+        // Change visuals
+        this.mesh.geometry.dispose();
+        this.mesh.geometry = new THREE.ConeGeometry(0.3, 1.5, 4);
+        this.mesh.geometry.rotateX(Math.PI / 2); // Point forward
+        this.mesh.material.color.setHex(0xffaa00); // Orange
+
+        this.velocity = new THREE.Vector3(0, 0, -1.5);
+        this.maxSpeed = 1.2;
+        this.turnSpeed = 0.08;
+    }
+
+    // Pass enemies array to update so it can find a target
+    update(enemies) {
+        if (!enemies || enemies.length === 0) {
+            // Dumb dumb straight movement
+            this.mesh.position.add(this.velocity);
+        } else {
+            // Find closest enemy
+            let closest = null;
+            let minDist = Infinity;
+            for (let e of enemies) {
+                if (!e.active) continue;
+                const dist = this.mesh.position.distanceToSquared(e.mesh.position);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = e;
+                }
+            }
+
+            if (closest) {
+                // Steer towards target
+                const myPos = this.mesh.position;
+                const targetPos = closest.mesh.position;
+                const dx = targetPos.x - myPos.x;
+                const dz = targetPos.z - myPos.z;
+
+                const desiredAngle = Math.atan2(dz, dx);
+                const desiredVelX = Math.cos(desiredAngle) * this.maxSpeed;
+                const desiredVelZ = Math.sin(desiredAngle) * this.maxSpeed;
+
+                this.velocity.x = Math.max(Math.min(this.velocity.x + (desiredVelX - this.velocity.x) * this.turnSpeed, 2), -2);
+                this.velocity.z = Math.max(Math.min(this.velocity.z + (desiredVelZ - this.velocity.z) * this.turnSpeed, 2), -2);
+
+                // Point visually
+                this.mesh.rotation.y = -Math.atan2(this.velocity.z, this.velocity.x) - Math.PI / 2;
+            }
+
+            this.mesh.position.add(this.velocity);
+        }
+
+        if (this.mesh.position.z < -60 || Math.abs(this.mesh.position.x) > 50 || this.mesh.position.z > 50) {
+            this.active = false;
+        }
     }
 }
 
