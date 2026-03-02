@@ -1,4 +1,4 @@
-import { BasicEnemy, ShooterEnemy, KamikazeEnemy, HeavyTankEnemy, Meteor, BossEnemy } from '../entities.js';
+import { BasicEnemy, ShooterEnemy, KamikazeEnemy, HeavyTankEnemy, Meteor, BossEnemy, DashBoss, Obstacle } from '../entities.js';
 
 export class WaveManager {
     constructor(scene) {
@@ -17,8 +17,12 @@ export class WaveManager {
         this.state = 'WAVE_START';
         this.waveTimer = 180; // 3 seconds at 60fps
 
-        if (waveNum % 5 === 0) {
-            // Boss Wave
+        if (waveNum % 10 === 0) {
+            // Dash Boss Wave (Level 10, 20, 30)
+            this.enemiesRemainingToSpawn = 1;
+            this.currentTypes = ['dashboss'];
+        } else if (waveNum % 5 === 0) {
+            // Regular Boss Wave (Level 5, 15, 25)
             this.enemiesRemainingToSpawn = 1;
             this.currentTypes = ['boss'];
         } else if (waveNum === 1) {
@@ -39,7 +43,7 @@ export class WaveManager {
         }
     }
 
-    update(activeEnemies) {
+    update(activeEnemies, obstacles) {
         if (this.state === 'WAVE_START') {
             this.waveTimer--;
             if (this.waveTimer <= 0) this.state = 'SPAWNING';
@@ -50,6 +54,11 @@ export class WaveManager {
                 if (this.enemiesRemainingToSpawn > 0) {
                     this.spawnEnemy(activeEnemies);
                     this.enemiesRemainingToSpawn--;
+
+                    // 15% chance to spawn an Obstacle alongside an enemy (unless Boss Wave)
+                    if (this.currentWave % 5 !== 0 && Math.random() < 0.15) {
+                        this.spawnObstacle(obstacles);
+                    }
                 } else {
                     this.state = 'WAITING_CLEAR';
                 }
@@ -72,7 +81,7 @@ export class WaveManager {
         const x = (Math.random() - 0.5) * 40;
         const z = -60 - Math.random() * 20;
 
-        const weights = { basic: 50, kamikaze: 30, shooter: 10, tank: 5, boss: 100 };
+        const weights = { basic: 50, kamikaze: 30, shooter: 10, tank: 5, boss: 100, dashboss: 100 };
 
         // Simple weighted random selection
         let totalWeight = 0;
@@ -90,12 +99,20 @@ export class WaveManager {
         }
 
         let enemy;
-        if (selectedType === 'boss') enemy = new BossEnemy(this.scene, 0, z); // Boss spawns in middle
+        if (selectedType === 'dashboss') enemy = new DashBoss(this.scene, 0, -50); // Spawns further back to telegraph better
+        else if (selectedType === 'boss') enemy = new BossEnemy(this.scene, 0, z); // Boss spawns in middle
         else if (selectedType === 'tank') enemy = new HeavyTankEnemy(this.scene, x, z);
         else if (selectedType === 'shooter') enemy = new ShooterEnemy(this.scene, x, z);
         else if (selectedType === 'kamikaze') enemy = new KamikazeEnemy(this.scene, x, z);
         else enemy = new BasicEnemy(this.scene, x, z);
 
         activeEnemies.push(enemy);
+    }
+
+    spawnObstacle(obstacles) {
+        const x = (Math.random() - 0.5) * 40;
+        const z = -70 - Math.random() * 20;
+        const size = 3 + Math.random() * 4; // Size between 3 and 7
+        obstacles.push(new Obstacle(this.scene, x, z, size));
     }
 }

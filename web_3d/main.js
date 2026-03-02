@@ -10,12 +10,14 @@ let score = 0;
 let level = 1;
 
 // --- PROGRESSION & UPGRADES ---
+let highScore = parseInt(localStorage.getItem('space_highscore')) || 0;
 let scrap = parseInt(localStorage.getItem('space_scrap')) || 0;
 let upgHealth = parseInt(localStorage.getItem('space_upg_health')) || 0;
 let upgHeat = parseInt(localStorage.getItem('space_upg_heat')) || 0;
 let upgMagnet = parseInt(localStorage.getItem('space_upg_magnet')) || 0;
 
 function saveProgression() {
+    localStorage.setItem('space_highscore', highScore);
     localStorage.setItem('space_scrap', scrap);
     localStorage.setItem('space_upg_health', upgHealth);
     localStorage.setItem('space_upg_heat', upgHeat);
@@ -35,6 +37,8 @@ const waveBanner = document.getElementById('wave-banner');
 const waveVal = document.getElementById('wave-val');
 const shopContainer = document.getElementById('shop-container');
 const scrapVal = document.getElementById('scrap-val');
+const highScoreDisplay = document.getElementById('high-score-display');
+const highScoreVal = document.getElementById('high-score-val');
 
 // --- SOUNDS FUNC ---
 function playSound(audioBuffer, volume = 0.5) {
@@ -96,6 +100,7 @@ let lasers = [];
 let enemyLasers = [];
 let enemies = [];
 let powerups = [];
+let obstacles = [];
 const waveManager = new WaveManager(scene);
 const explosionManager = new ExplosionManager(scene);
 const engineTrail = new EngineTrail(scene);
@@ -163,7 +168,7 @@ function animate() {
         const prevWaveState = waveManager.state;
         const currentWaveNum = waveManager.currentWave;
 
-        waveManager.update(enemies);
+        waveManager.update(enemies, obstacles);
 
         // Announce Wave Start
         if (waveManager.state === 'SPAWNING' && prevWaveState === 'WAVE_START') {
@@ -263,6 +268,13 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
+
+                        let newRecord = false;
+                        if (player.score > highScore) {
+                            highScore = player.score;
+                            newRecord = true;
+                        }
+
                         // Keep 50% of score as Scrap currency
                         const earnedScrap = Math.floor(player.score * 0.5);
                         scrap += earnedScrap;
@@ -270,6 +282,7 @@ function animate() {
 
                         startScreen.innerHTML = `<h1>GAME OVER</h1>
                         <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
                         <p style="margin-bottom: 20px; color: yellow;">Earned Scrap: +${earnedScrap}</p>
                         <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
@@ -303,6 +316,13 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
+
+                        let newRecord = false;
+                        if (player.score > highScore) {
+                            highScore = player.score;
+                            newRecord = true;
+                        }
+
                         // Keep 50% of score as Scrap currency
                         const earnedScrap = Math.floor(player.score * 0.5);
                         scrap += earnedScrap;
@@ -310,6 +330,7 @@ function animate() {
 
                         startScreen.innerHTML = `<h1>GAME OVER</h1>
                         <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
                         <p style="margin-bottom: 20px; color: yellow;">Earned Scrap: +${earnedScrap}</p>
                         <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
@@ -347,6 +368,65 @@ function animate() {
             if (!e.active) {
                 e.destroy();
                 enemies.splice(i, 1);
+            }
+        }
+
+        // Update Obstacles (Asteroids) & Collisions
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            const obs = obstacles[i];
+            obs.update();
+
+            // Collision with Player
+            if (!player.isDashing && checkCollision(player.mesh, obs.mesh, obs.size + 1.0)) {
+                if (player.shieldActive) {
+                    player.shieldActive = false;
+                } else {
+                    player.health -= 50; // Heavy damage from asteroid
+                    shakeDuration = 20;
+                    healthVal.innerText = player.health;
+                    explosionManager.createExplosion(player.mesh.position, 0xff0000);
+                    playSound(sounds.explosion);
+
+                    // Bounce player backwards
+                    player.velocity.z += 0.8;
+
+                    if (player.health <= 0) {
+                        gameState = 'GAMEOVER';
+
+                        let newRecord = false;
+                        if (player.score > highScore) {
+                            highScore = player.score;
+                            newRecord = true;
+                        }
+
+                        // Keep 50% of score as Scrap currency
+                        const earnedScrap = Math.floor(player.score * 0.5);
+                        scrap += earnedScrap;
+                        saveProgression();
+
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
+                        <p style="margin-bottom: 20px; color: yellow;">Earned Scrap: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
+                        startScreen.classList.remove('hidden');
+                        hud.classList.add('hidden');
+                    }
+                }
+            }
+
+            // Check collision with Player Lasers (bounce/destroy laser, no damage to asteroid)
+            for (let j = lasers.length - 1; j >= 0; j--) {
+                const l = lasers[j];
+                if (l.active && checkCollision(l.mesh, obs.mesh, obs.size + 0.5)) {
+                    l.active = false;
+                    explosionManager.createExplosion(l.mesh.position, 0xaaaaaa, 5); // small rock explosion
+                }
+            }
+
+            if (!obs.active) {
+                obs.destroy();
+                obstacles.splice(i, 1);
             }
         }
     } else {
@@ -449,6 +529,8 @@ startBtn.addEventListener('click', () => {
     enemies = [];
     powerups.forEach(p => p.destroy());
     powerups = [];
+    obstacles.forEach(o => o.destroy());
+    obstacles = [];
 
     waveManager.startWave(1);
 });
@@ -461,6 +543,12 @@ loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
 loadAssets(() => {
     loadingText.classList.add('hidden');
     startBtn.classList.remove('hidden');
+
+    if (highScore > 0) {
+        highScoreDisplay.classList.remove('hidden');
+        highScoreVal.innerText = highScore;
+    }
+
     if (shopContainer) {
         shopContainer.classList.remove('hidden');
         updateShopUI();

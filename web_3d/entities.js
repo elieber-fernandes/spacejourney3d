@@ -495,6 +495,106 @@ export class BossEnemy extends Enemy {
     }
 }
 
+export class DashBoss extends Enemy {
+    constructor(scene, x, y) {
+        const geo = new THREE.CylinderGeometry(0, 6, 12, 4);
+        geo.rotateX(Math.PI / 2); // Point forward
+        super(scene, x, y, geo, 0x00ff00, 7, 70, 1000); // Neon green, 70 HP (more than regular boss)
+        this.speed = 0.05;
+        this.dashSpeed = 1.5;
+        this.state = 'IDLE'; // IDLE, TELEGRAPH, DASHING, RECOVERING
+        this.stateTimer = 180;
+        this.targetPoint = new THREE.Vector3();
+    }
+
+    update(player, enemyLasers) {
+        if (this.state === 'IDLE') {
+            // Hover near the top
+            if (this.mesh.position.z < -40) {
+                this.velocity.z += 0.01;
+                this.velocity.multiplyScalar(0.9);
+                this.mesh.position.add(this.velocity);
+            } else {
+                this.mesh.position.x = Math.sin(Date.now() * 0.001) * 30;
+                this.mesh.position.z = -40;
+            }
+
+            // Shoot regular lasers
+            if (Math.random() < 0.05) {
+                const laser = new EnemyLaser(this.scene, this.mesh.position.clone(), 0);
+                laser.mesh.material.color.setHex(0x00ff00);
+                laser.speed = 0.8; // Faster lasers
+                laser.velZ = laser.speed;
+                laser.isHeavy = true;
+                enemyLasers.push(laser);
+            }
+
+            this.stateTimer--;
+            if (this.stateTimer <= 0) {
+                this.state = 'TELEGRAPH';
+                this.stateTimer = 60; // 1 second telegraph
+                this.mesh.material.emissive.setHex(0x00ff00);
+            }
+        }
+        else if (this.state === 'TELEGRAPH') {
+            // Flash heavily
+            this.mesh.material.emissiveIntensity = (Math.sin(Date.now() * 0.02) + 1) / 2;
+
+            this.stateTimer--;
+            if (this.stateTimer <= 0) {
+                this.state = 'DASHING';
+                this.stateTimer = 100; // max dash time
+                this.mesh.material.emissiveIntensity = 1;
+
+                // Calculate dash vector directly at player
+                const dx = player.mesh.position.x - this.mesh.position.x;
+                const dz = player.mesh.position.z - this.mesh.position.z;
+                const angle = Math.atan2(dz, dx);
+                this.velocity.x = Math.cos(angle) * this.dashSpeed;
+                this.velocity.z = Math.sin(angle) * this.dashSpeed;
+
+                // Point at player
+                this.mesh.rotation.y = -angle - Math.PI / 2;
+                this.mesh.rotation.x = 0;
+            }
+        }
+        else if (this.state === 'DASHING') {
+            this.mesh.position.add(this.velocity);
+
+            // Spin wildly while dashing
+            this.mesh.rotation.z += 0.5;
+
+            this.stateTimer--;
+            if (this.stateTimer <= 0 || this.mesh.position.z > 30 || Math.abs(this.mesh.position.x) > 50) {
+                this.state = 'RECOVERING';
+                this.stateTimer = 120; // 2 seconds to recover
+                this.velocity.set(0, 0, 0);
+                this.mesh.material.emissiveIntensity = 0;
+                this.mesh.rotation.set(0, 0, 0); // Reset rotation
+            }
+        }
+        else if (this.state === 'RECOVERING') {
+            // Slowly drift back to the top
+            const dx = 0 - this.mesh.position.x;
+            const dz = -50 - this.mesh.position.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist > 5) {
+                const angle = Math.atan2(dz, dx);
+                this.velocity.x += Math.cos(angle) * 0.05;
+                this.velocity.z += Math.sin(angle) * 0.05;
+                this.velocity.multiplyScalar(0.9);
+                this.mesh.position.add(this.velocity);
+            }
+
+            this.stateTimer--;
+            if (this.stateTimer <= 0) {
+                this.state = 'IDLE';
+                this.stateTimer = 180 + Math.random() * 60; // Random idle time before next dash
+            }
+        }
+    }
+}
+
 export class Meteor extends Enemy {
     constructor(scene, x, y, dirX, dirZ) {
         const radius = 2 + Math.random() * 1.5;
@@ -559,6 +659,46 @@ export class PowerUp {
 
         const scale = 1 + Math.sin(Date.now() * 0.005) * 0.2;
         this.mesh.scale.set(scale, scale, scale);
+    }
+
+    destroy() {
+        this.scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+    }
+}
+
+export class Obstacle {
+    constructor(scene, x, y, size = 3) {
+        this.scene = scene;
+        this.size = size;
+        const geo = new THREE.DodecahedronGeometry(size);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x555555,
+            roughness: 0.9,
+            metalness: 0.2
+        });
+
+        this.mesh = new THREE.Mesh(geo, mat);
+        this.mesh.position.set(x, 0, y);
+        this.mesh.castShadow = true;
+        this.scene.add(this.mesh);
+
+        this.velZ = 0.15 + Math.random() * 0.1;
+        this.rotSpeedX = (Math.random() - 0.5) * 0.05;
+        this.rotSpeedY = (Math.random() - 0.5) * 0.05;
+        this.active = true;
+        this.isInvincible = true;
+    }
+
+    update() {
+        this.mesh.position.z += this.velZ;
+        this.mesh.rotation.x += this.rotSpeedX;
+        this.mesh.rotation.y += this.rotSpeedY;
+
+        if (this.mesh.position.z > 50) {
+            this.active = false;
+        }
     }
 
     destroy() {
