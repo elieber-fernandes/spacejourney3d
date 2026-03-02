@@ -393,7 +393,10 @@ function animate() {
 
         // Update Player
         player.update(keys, lasers, () => {
-            if (gameState === 'PLAYING') playSound(sounds.shoot);
+            if (gameState === 'PLAYING') {
+                if (currentShipIndex === 1) playSound(sounds.speedsterShoot);
+                else playSound(sounds.shoot);
+            }
         });
 
         // Spawn engine trails if player is moving or idling
@@ -561,7 +564,8 @@ function animate() {
                         player.score += points;
                         scoreVal.innerText = player.score;
                         explosionManager.createExplosion(e.mesh.position, 0xffaa00);
-                        playSound(sounds.explosion);
+                        if (l.isHoming) playSound(sounds.homingExplosion);
+                        else playSound(sounds.explosion);
 
                         // Drop powerup
                         if (Math.random() < 0.2 || (e.isHeavy && Math.random() < 0.5) || e.hp > 100) { // Boss drops guaranteed

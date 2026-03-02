@@ -682,6 +682,7 @@ export class PowerUp {
 export class HomingMissile extends Laser {
     constructor(scene, startPosition) {
         super(scene, startPosition, 0);
+        this.isHoming = true;
         // Change visuals
         this.mesh.geometry.dispose();
         this.mesh.geometry = new THREE.ConeGeometry(0.3, 1.5, 4);
