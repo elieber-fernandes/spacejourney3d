@@ -76,24 +76,36 @@ export class ExplosionManager {
         }
     }
 
+    getOrCreateSparkMat(colorHex) {
+        if (!this.sparkMats) this.sparkMats = {};
+        if (!this.sparkMats[colorHex]) {
+            const newMat = this.mat.clone();
+            newMat.color.setHex(colorHex);
+            this.sparkMats[colorHex] = newMat;
+        }
+        return this.sparkMats[colorHex];
+    }
+
     createPowerUpSparkle(position, color = 0x00ff00, count = 12) {
         // Creates a flat expanding ring of particles
+        // Use a shared material for sparks of the same color
+        const sparkMat = this.getOrCreateSparkMat(color);
+
         for (let i = 0; i < count; i++) {
-            const sprite = new THREE.Sprite(this.mat.clone());
-            sprite.material.color.setHex(color);
+            const sprite = new THREE.Sprite(sparkMat);
             sprite.position.copy(position);
 
             const angle = (i / count) * Math.PI * 2;
-            const speed = 0.4; // Expand uniformly outwards
+            const speed = 0.6; // Faster expansion looks punchier
 
             sprite.userData = {
                 vel: new THREE.Vector3(
                     Math.cos(angle) * speed,
-                    0, // flat ring on XZ plane ideally, but we use XY/XZ depending on camera
+                    0,
                     Math.sin(angle) * speed
                 ),
                 life: 1.0,
-                decay: 0.1 // Fast fade
+                decay: 0.05 // Fades out slightly slower so we can see it
             };
 
             const scale = 0.8;
