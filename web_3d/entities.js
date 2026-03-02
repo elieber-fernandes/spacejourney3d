@@ -654,6 +654,8 @@ export class PowerUp {
         else if (type === 'spread_shot') color = 0xff00ff; // Magenta spread
         else if (type === 'homing_missiles') color = 0xff9900; // Orange Homing Missiles
 
+        this.color = color;
+
         const geo = new THREE.OctahedronGeometry(1);
         const mat = new THREE.MeshStandardMaterial({
             color: color,

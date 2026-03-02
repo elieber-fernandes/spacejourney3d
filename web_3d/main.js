@@ -341,6 +341,38 @@ function checkCollision(obj1, obj2, threshold = 2.0) {
     return obj1.position.distanceTo(obj2.position) < threshold;
 }
 
+// --- FLOATING TEXT ---
+function showFloatingText(text, colorHex, position3D) {
+    if (!floatingTextContainer) return;
+
+    // Convert 3D position to 2D screen coordinates
+    const vector = position3D.clone();
+    vector.project(camera);
+
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
+
+    // Create element
+    const el = document.createElement('div');
+    el.className = 'floating-text';
+    el.innerText = text;
+
+    // Convert hex color to CSS formatting (e.g. 0xff0000 -> #ff0000)
+    let colorStr = '#' + colorHex.toString(16).padStart(6, '0');
+    el.style.color = colorStr;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+
+    floatingTextContainer.appendChild(el);
+
+    // Remove element after animation completes (1 second)
+    setTimeout(() => {
+        if (el.parentNode === floatingTextContainer) {
+            floatingTextContainer.removeChild(el);
+        }
+    }, 1000);
+}
+
 // --- GAME LOOP ---
 let lastTime = Date.now();
 function animate() {
@@ -420,26 +452,38 @@ function animate() {
             p.update();
 
             if (checkCollision(player.mesh, p.mesh, player.magnetRadius || 2.0)) {
+                let text = "";
                 if (p.type === 'health') {
                     player.health = Math.min(player.maxHealth || 100, player.health + 20);
+                    text = "+ HEALTH";
                 } else if (p.type === 'shield') {
                     player.shieldActive = true;
+                    text = "SHIELD ACTIVE";
                 } else if (p.type === 'triple_shot') {
                     // This is now plasma_shot
                     player.tripleShotTimer = 800;
                     player.spreadShotTimer = 0;
                     player.speedBoostTimer = 0;
+                    text = "PLASMA CANNON";
                 } else if (p.type === 'spread_shot') {
                     player.spreadShotTimer = 800;
                     player.tripleShotTimer = 0;
                     player.speedBoostTimer = 0;
+                    text = "SPREAD SHOT";
                 } else if (p.type === 'rapid_fire') {
                     player.speedBoostTimer = 600; // Reuse speed boost timer internally for rapid fire
                     player.spreadShotTimer = 0;
                     player.tripleShotTimer = 0;
+                    text = "RAPID FIRE";
                 }
 
                 healthVal.innerText = player.health;
+                playSound(sounds.powerup);
+
+                // Visual feedbacks
+                explosionManager.createPowerUpSparkle(p.mesh.position, p.color);
+                showFloatingText(text, p.color, p.mesh.position);
+
                 p.destroy();
                 powerups.splice(i, 1);
             } else if (!p.active) {

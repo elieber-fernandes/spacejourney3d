@@ -76,6 +76,34 @@ export class ExplosionManager {
         }
     }
 
+    createPowerUpSparkle(position, color = 0x00ff00, count = 12) {
+        // Creates a flat expanding ring of particles
+        for (let i = 0; i < count; i++) {
+            const sprite = new THREE.Sprite(this.mat.clone());
+            sprite.material.color.setHex(color);
+            sprite.position.copy(position);
+
+            const angle = (i / count) * Math.PI * 2;
+            const speed = 0.4; // Expand uniformly outwards
+
+            sprite.userData = {
+                vel: new THREE.Vector3(
+                    Math.cos(angle) * speed,
+                    0, // flat ring on XZ plane ideally, but we use XY/XZ depending on camera
+                    Math.sin(angle) * speed
+                ),
+                life: 1.0,
+                decay: 0.1 // Fast fade
+            };
+
+            const scale = 0.8;
+            sprite.scale.set(scale, scale, scale);
+
+            this.scene.add(sprite);
+            this.explosions.push(sprite);
+        }
+    }
+
     update() {
         for (let i = this.explosions.length - 1; i >= 0; i--) {
             const p = this.explosions[i];
