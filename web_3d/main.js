@@ -130,6 +130,123 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
+// --- TOUCH HANDLING (MOBILE CONTROLS) ---
+const mobileUI = document.getElementById('mobile-ui');
+const joystickZone = document.getElementById('joystick-zone');
+const joystickBase = document.getElementById('joystick-base');
+const joystickKnob = document.getElementById('joystick-knob');
+const fireBtn = document.getElementById('fire-btn');
+
+let isTouchDevice = false;
+let joystickActive = false;
+let joystickStartPos = { x: 0, y: 0 };
+let joystickTouchId = null;
+
+// Only show mobile UI if touch starts
+window.addEventListener('touchstart', () => {
+    if (!isTouchDevice) {
+        isTouchDevice = true;
+        // The mobile UI is displayed ONLY when we start playing. We do not show it on the start screen.
+    }
+}, { once: true });
+
+// Fire Button Logic
+fireBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevents mouse emulation and scrolling
+    keys['Space'] = true;
+});
+fireBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    keys['Space'] = false;
+});
+fireBtn.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    keys['Space'] = false;
+});
+
+// Joystick Logic
+joystickZone.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (joystickActive) return; // Prevent multiple touches on joystick
+
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        joystickTouchId = touch.identifier;
+        joystickStartPos.x = touch.clientX;
+        joystickStartPos.y = touch.clientY;
+        joystickActive = true;
+
+        joystickBase.classList.remove('hidden');
+        joystickBase.style.left = `${touch.clientX}px`;
+        joystickBase.style.top = `${touch.clientY}px`;
+        joystickKnob.style.transform = `translate(-50%, -50%)`;
+        break; // Only track one finger for joystick
+    }
+});
+
+joystickZone.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!joystickActive) return;
+
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === joystickTouchId) {
+            const dx = touch.clientX - joystickStartPos.x;
+            const dy = touch.clientY - joystickStartPos.y;
+
+            // Limit knob visual movement to a max radius (e.g. 50px)
+            const magnitude = Math.hypot(dx, dy);
+            const maxRadius = 50;
+            let knobX = dx;
+            let knobY = dy;
+
+            if (magnitude > maxRadius) {
+                knobX = (dx / magnitude) * maxRadius;
+                knobY = (dy / magnitude) * maxRadius;
+            }
+
+            joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+            // Logic mapping -> Keyboard Keys
+            // Threshold for direction to be considered "pressed"
+            const threshold = 15;
+
+            keys.w = dy < -threshold;
+            keys.s = dy > threshold;
+            keys.a = dx < -threshold;
+            keys.d = dx > threshold;
+        }
+    }
+});
+
+function resetJoystick() {
+    joystickActive = false;
+    joystickTouchId = null;
+    joystickBase.classList.add('hidden');
+    keys.w = false;
+    keys.s = false;
+    keys.a = false;
+    keys.d = false;
+}
+
+joystickZone.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) {
+            resetJoystick();
+        }
+    }
+});
+
+joystickZone.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) {
+            resetJoystick();
+        }
+    }
+});
+
 // --- HELPER FUNC ---
 function checkCollision(obj1, obj2, threshold = 2.0) {
     if (!obj1 || !obj2) return false;
@@ -287,6 +404,8 @@ function animate() {
                         <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
+                        if (mobileUI) mobileUI.classList.add('hidden');
+                        if (typeof resetJoystick === 'function') resetJoystick();
                     }
                 }
             }
@@ -335,6 +454,8 @@ function animate() {
                         <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
+                        if (mobileUI) mobileUI.classList.add('hidden');
+                        if (typeof resetJoystick === 'function') resetJoystick();
                     }
                 }
             }
@@ -411,6 +532,8 @@ function animate() {
                         <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
+                        if (mobileUI) mobileUI.classList.add('hidden');
+                        if (typeof resetJoystick === 'function') resetJoystick();
                     }
                 }
             }
@@ -512,6 +635,10 @@ startBtn.addEventListener('click', () => {
     gameState = 'PLAYING';
     startScreen.classList.add('hidden');
     hud.classList.remove('hidden');
+
+    if (isTouchDevice) {
+        mobileUI.classList.remove('hidden');
+    }
 
     // Apply Upgrades to Player
     player.maxHealth = 100 + (upgHealth * 20); // Each level +20 HP

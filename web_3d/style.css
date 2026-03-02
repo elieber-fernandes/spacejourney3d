@@ -255,3 +255,125 @@ canvas {
     opacity: 1;
   }
 }
+
+/* Mobile Controls */
+#mobile-ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 15;
+  /* Above canvas, below screens */
+  pointer-events: none;
+  /* Only children are clickable */
+}
+
+#joystick-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 100vh;
+  pointer-events: auto;
+  /* Capture touches on left half */
+  touch-action: none;
+}
+
+#joystick-base {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(0, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  /* Centered around touch point */
+  pointer-events: none;
+  touch-action: none;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+#joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+#fire-btn {
+  position: absolute;
+  bottom: 50px;
+  right: 50px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 0, 0, 0.3);
+  border: 2px solid rgba(255, 0, 0, 0.8);
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+}
+
+#fire-btn:active {
+  background: rgba(255, 0, 0, 0.6);
+  transform: scale(0.95);
+}
+
+/* Responsive adjustments for Mobile */
+@media (max-width: 768px) {
+  #start-screen h1 {
+    font-size: 2.5rem;
+  }
+
+  #high-score-display {
+    font-size: 1.2rem;
+  }
+
+  #shop-container {
+    min-width: 90%;
+    padding: 10px;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  .upgrade-items p {
+    font-size: 0.9rem;
+  }
+
+  .upgrade-btn {
+    font-size: 0.8rem;
+    padding: 8px;
+  }
+
+  #start-btn {
+    font-size: 1.2rem;
+    padding: 10px 20px;
+  }
+
+  #hud {
+    padding: 10px 15px;
+    height: 70px;
+  }
+
+  #hud>div {
+    font-size: 1.2rem;
+  }
+
+  .heat-wrapper {
+    font-size: 0.9rem !important;
+  }
+
+  #heat-bar-bg {
+    width: 100px;
+    height: 10px;
+  }
+}
