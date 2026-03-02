@@ -266,9 +266,11 @@ export class Enemy {
 }
 
 export class BasicEnemy extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 1) {
         const geo = new THREE.BoxGeometry(2, 2, 2);
-        super(scene, x, y, geo, 0x00ff00, 2.5, 1, 10);
+        // Base HP 1, scales slowly
+        const hp = 1 + Math.floor(waveNum * 0.5);
+        super(scene, x, y, geo, 0x00ff00, 2.5, hp, 10);
         this.speed = 0.15 + (Math.random() * 0.1);
     }
 
@@ -294,10 +296,12 @@ export class BasicEnemy extends Enemy {
 }
 
 export class ShooterEnemy extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 1) {
         const geo = new THREE.ConeGeometry(1.5, 3, 4);
         geo.rotateX(-Math.PI / 2);
-        super(scene, x, y, geo, 0xff00ff, 3, 2, 20);
+        // Base HP 2, scales moderately
+        const hp = 2 + Math.floor(waveNum * 0.8);
+        super(scene, x, y, geo, 0xff00ff, 3, hp, 20);
         this.speed = 0.1;
         this.shootCooldown = 150;
         this.currentCooldown = 0;
@@ -366,9 +370,11 @@ export class EnemyLaser {
 }
 
 export class KamikazeEnemy extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 1) {
         const geo = new THREE.IcosahedronGeometry(1.5);
-        super(scene, x, y, geo, 0xffff00, 2.5, 1, 15);
+        // Base HP 1, stays squishy
+        const hp = 1 + Math.floor(waveNum * 0.3);
+        super(scene, x, y, geo, 0xffff00, 2.5, hp, 15);
         this.speed = 0.35; // Increased speed
         this.baseColor = new THREE.Color(0xffff00);
         this.alertColor = new THREE.Color(0xff0000);
@@ -412,9 +418,11 @@ export class KamikazeEnemy extends Enemy {
 }
 
 export class HeavyTankEnemy extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 1) {
         const geo = new THREE.BoxGeometry(4, 4, 4);
-        super(scene, x, y, geo, 0xff0000, 4.5, 6, 50);
+        // Base HP 6, scales heavily
+        const hp = 6 + Math.floor(waveNum * 1.5);
+        super(scene, x, y, geo, 0xff0000, 4.5, hp, 50);
         this.speed = 0.05;
         this.shootCooldown = 120;
         this.currentCooldown = 0;
@@ -456,9 +464,11 @@ export class HeavyTankEnemy extends Enemy {
 }
 
 export class BossEnemy extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 5) {
         const geo = new THREE.BoxGeometry(8, 2, 4);
-        super(scene, x, y, geo, 0xff5500, 8, 40, 500);
+        // Base HP 40, scales massive
+        const hp = 40 + (waveNum * 10);
+        super(scene, x, y, geo, 0xff5500, 8, hp, 500);
         this.speed = 0.08;
         this.shootCooldown = 90;
         this.currentCooldown = 60; // initial delay
@@ -506,10 +516,13 @@ export class BossEnemy extends Enemy {
 }
 
 export class DashBoss extends Enemy {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, waveNum = 10) {
         const geo = new THREE.CylinderGeometry(0, 6, 12, 4);
         geo.rotateX(Math.PI / 2); // Point forward
-        super(scene, x, y, geo, 0x00ff00, 7, 70, 1000); // Neon green, 70 HP (more than regular boss)
+
+        const hp = 70 + (waveNum * 15);
+        super(scene, x, y, geo, 0x00ff00, 7, hp, 1000); // Neon green
+
         this.speed = 0.05;
         this.dashSpeed = 1.5;
         this.state = 'IDLE'; // IDLE, TELEGRAPH, DASHING, RECOVERING

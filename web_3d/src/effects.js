@@ -48,6 +48,34 @@ export class ExplosionManager {
         }
     }
 
+    createHitSpark(position, color = 0xffffff, count = 5) {
+        // Smaller burst of sparks for a non-lethal hit
+        for (let i = 0; i < count; i++) {
+            const sprite = new THREE.Sprite(this.mat.clone());
+            sprite.material.color.setHex(color);
+            sprite.position.copy(position);
+
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 0.8 + 0.2; // slightly faster than explosion
+
+            sprite.userData = {
+                vel: new THREE.Vector3(
+                    Math.cos(angle) * speed,
+                    (Math.random() - 0.5) * speed,
+                    -Math.abs(Math.sin(angle)) * speed // bias toward deflecting backwards (negative Z)
+                ),
+                life: 1.0,
+                decay: Math.random() * 0.15 + 0.08 // decays much faster than explosion
+            };
+
+            const scale = Math.random() * 0.5 + 0.2; // smaller than explosion
+            sprite.scale.set(scale, scale, scale);
+
+            this.scene.add(sprite);
+            this.explosions.push(sprite);
+        }
+    }
+
     update() {
         for (let i = this.explosions.length - 1; i >= 0; i--) {
             const p = this.explosions[i];

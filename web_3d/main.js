@@ -560,6 +560,10 @@ function animate() {
                     }
                     const points = e.takeDamage(l.isPlasma ? 10 : 1); // Plasma does 10 damage instantly
 
+                    if (e.hp > 0) {
+                        explosionManager.createHitSpark(l.mesh.position, e.mesh.material.color.getHex());
+                    }
+
                     if (!e.active) {
                         player.score += points;
                         scoreVal.innerText = player.score;
@@ -635,7 +639,7 @@ function animate() {
                 const l = lasers[j];
                 if (l.active && checkCollision(l.mesh, obs.mesh, obs.size + 0.5)) {
                     l.active = false;
-                    explosionManager.createExplosion(l.mesh.position, 0xaaaaaa, 5); // small rock explosion
+                    explosionManager.createHitSpark(l.mesh.position, 0xdddddd, 8); // more sparks for rock ping
                 }
             }
 

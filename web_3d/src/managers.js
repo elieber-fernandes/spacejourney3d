@@ -17,29 +17,44 @@ export class WaveManager {
         this.state = 'WAVE_START';
         this.waveTimer = 180; // 3 seconds at 60fps
 
+        // Dynamic spawn rate (gets faster each wave, caps at 15 frames)
+        this.spawnRate = Math.max(15, 60 - (waveNum * 4));
+
         if (waveNum % 10 === 0) {
             // Dash Boss Wave (Level 10, 20, 30)
             this.enemiesRemainingToSpawn = 1;
-            this.currentTypes = ['dashboss'];
+            this.currentTypes = [{ type: 'dashboss', weight: 100 }];
         } else if (waveNum % 5 === 0) {
             // Regular Boss Wave (Level 5, 15, 25)
-            this.enemiesRemainingToSpawn = 1;
-            this.currentTypes = ['boss'];
-        } else if (waveNum === 1) {
-            this.enemiesRemainingToSpawn = 5;
-            this.currentTypes = ['basic'];
-        } else if (waveNum === 2) {
-            this.enemiesRemainingToSpawn = 8;
-            this.currentTypes = ['basic', 'kamikaze'];
-        } else if (waveNum === 3) {
-            this.enemiesRemainingToSpawn = 10;
-            this.currentTypes = ['basic', 'shooter'];
-        } else if (waveNum === 4) {
-            this.enemiesRemainingToSpawn = 15;
-            this.currentTypes = ['basic', 'kamikaze', 'shooter', 'tank'];
+            // Spawn boss + a few minions
+            this.enemiesRemainingToSpawn = 1 + Math.floor(waveNum / 5);
+            this.currentTypes = [{ type: 'boss', weight: 100 }, { type: 'basic', weight: 20 }];
+        } else if (waveNum <= 2) {
+            // Intro: Just basics
+            this.enemiesRemainingToSpawn = 5 + (waveNum * 3); // W1: 8, W2: 11
+            this.currentTypes = [{ type: 'basic', weight: 100 }];
+        } else if (waveNum <= 4) {
+            // Introduce shooters
+            this.enemiesRemainingToSpawn = 10 + (waveNum * 3); // W3: 19, W4: 22
+            this.currentTypes = [{ type: 'basic', weight: 70 }, { type: 'shooter', weight: 30 }];
+        } else if (waveNum <= 9) {
+            // Mix of everything basic + kamikaze + tanks
+            this.enemiesRemainingToSpawn = 15 + (waveNum * 4);
+            this.currentTypes = [
+                { type: 'basic', weight: 50 },
+                { type: 'shooter', weight: 20 },
+                { type: 'kamikaze', weight: 20 },
+                { type: 'tank', weight: 10 }
+            ];
         } else {
-            this.enemiesRemainingToSpawn = 10 + (waveNum * 2);
-            this.currentTypes = ['basic', 'kamikaze', 'shooter', 'tank'];
+            // High level madness
+            this.enemiesRemainingToSpawn = 30 + (waveNum * 5);
+            this.currentTypes = [
+                { type: 'basic', weight: 30 },
+                { type: 'shooter', weight: 25 },
+                { type: 'kamikaze', weight: 25 },
+                { type: 'tank', weight: 20 }
+            ];
         }
     }
 
@@ -81,38 +96,43 @@ export class WaveManager {
         const x = (Math.random() - 0.5) * 40;
         const z = -60 - Math.random() * 20;
 
-        const weights = { basic: 50, kamikaze: 30, shooter: 10, tank: 5, boss: 100, dashboss: 100 };
-
         // Simple weighted random selection
         let totalWeight = 0;
-        const validTypes = [];
         for (let t of this.currentTypes) {
-            totalWeight += weights[t];
-            validTypes.push({ t, weight: weights[t] });
+            totalWeight += t.weight;
         }
 
         let r = Math.random() * totalWeight;
         let selectedType = 'basic';
-        for (let t of validTypes) {
+        for (let t of this.currentTypes) {
             r -= t.weight;
-            if (r <= 0) { selectedType = t.t; break; }
+            if (r <= 0) {
+                selectedType = t.type;
+                break;
+            }
         }
 
         let enemy;
-        if (selectedType === 'dashboss') enemy = new DashBoss(this.scene, 0, -50); // Spawns further back to telegraph better
-        else if (selectedType === 'boss') enemy = new BossEnemy(this.scene, 0, z); // Boss spawns in middle
-        else if (selectedType === 'tank') enemy = new HeavyTankEnemy(this.scene, x, z);
-        else if (selectedType === 'shooter') enemy = new ShooterEnemy(this.scene, x, z);
-        else if (selectedType === 'kamikaze') enemy = new KamikazeEnemy(this.scene, x, z);
-        else enemy = new BasicEnemy(this.scene, x, z);
+        // Pass currentWave to constructors so they can scale their own HP
+        if (selectedType === 'dashboss') enemy = new DashBoss(this.scene, 0, -50, this.currentWave);
+        else if (selectedType === 'boss') enemy = new BossEnemy(this.scene, 0, z, this.currentWave);
+        else if (selectedType === 'tank') enemy = new HeavyTankEnemy(this.scene, x, z, this.currentWave);
+        else if (selectedType === 'shooter') enemy = new ShooterEnemy(this.scene, x, z, this.currentWave);
+        else if (selectedType === 'kamikaze') enemy = new KamikazeEnemy(this.scene, x, z, this.currentWave);
+        else enemy = new BasicEnemy(this.scene, x, z, this.currentWave);
 
         activeEnemies.push(enemy);
     }
 
     spawnObstacle(obstacles) {
-        const x = (Math.random() - 0.5) * 40;
-        const z = -70 - Math.random() * 20;
-        const size = 3 + Math.random() * 4; // Size between 3 and 7
-        obstacles.push(new Obstacle(this.scene, x, z, size));
+        // More obstacles on later waves
+        const count = Math.floor(Math.random() * (1 + this.currentWave / 5)) + 1;
+
+        for (let i = 0; i < count; i++) {
+            const x = (Math.random() - 0.5) * 40;
+            const z = -70 - Math.random() * 20;
+            const size = 3 + Math.random() * 4;
+            obstacles.push(new Obstacle(this.scene, x, z, size));
+        }
     }
 }
