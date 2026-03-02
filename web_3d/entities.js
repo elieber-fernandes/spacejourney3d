@@ -38,7 +38,10 @@ export class Player {
         this.baseShootDelay = 250;
         this.shootDelay = 250;
 
-        this.health = 100;
+        this.maxHealth = 100;
+        this.health = this.maxHealth;
+        this.magnetRadius = 2.0;
+
         this.score = 0;
 
         // Overheating
@@ -171,7 +174,7 @@ export class Player {
         this.mesh.position.set(0, 0, 0);
         this.mesh.rotation.set(0, 0, 0);
         this.velocity.set(0, 0, 0);
-        this.health = 100;
+        this.health = this.maxHealth || 100;
         this.score = 0;
         this.shieldActive = false;
         this.tripleShotTimer = 0;
@@ -356,23 +359,45 @@ export class KamikazeEnemy extends Enemy {
     constructor(scene, x, y) {
         const geo = new THREE.IcosahedronGeometry(1.5);
         super(scene, x, y, geo, 0xffff00, 2.5, 1, 15);
-        this.speed = 0.25;
+        this.speed = 0.35; // Increased speed
+        this.baseColor = new THREE.Color(0xffff00);
+        this.alertColor = new THREE.Color(0xff0000);
     }
 
     update(player) {
         const dx = player.mesh.position.x - this.mesh.position.x;
         const dz = player.mesh.position.z - this.mesh.position.z;
+        const dist = Math.hypot(dx, dz);
         const angle = Math.atan2(dz, dx);
 
-        this.velocity.x += Math.cos(angle) * 0.02;
-        this.velocity.z += Math.sin(angle) * 0.02;
+        // Stronger pulling force
+        this.velocity.x += Math.cos(angle) * 0.04;
+        this.velocity.z += Math.sin(angle) * 0.04;
+
         this.velocity.multiplyScalar(0.96);
-        if (this.velocity.length() > this.speed) this.velocity.setLength(this.speed);
+        if (this.velocity.length() > this.speed) {
+            this.velocity.setLength(this.speed);
+        }
+
         this.mesh.position.add(this.velocity);
 
+        // Blinking effect based on distance
+        if (dist < 20) {
+            // Blink faster as it gets closer
+            const blinkSpeed = Math.max(0.05, dist * 0.01);
+            if (Date.now() % (blinkSpeed * 1000) < (blinkSpeed * 500)) {
+                this.mesh.material.color.copy(this.alertColor);
+                this.mesh.material.emissive.copy(this.alertColor);
+                this.mesh.material.emissiveIntensity = 0.8;
+            } else {
+                this.mesh.material.color.copy(this.baseColor);
+                this.mesh.material.emissiveIntensity = 0;
+            }
+        }
+
         // Spin aggressively
-        this.mesh.rotation.x += 0.1;
-        this.mesh.rotation.y += 0.1;
+        this.mesh.rotation.x += 0.15;
+        this.mesh.rotation.y += 0.15;
     }
 }
 

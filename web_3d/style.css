@@ -56,10 +56,68 @@ canvas {
 /* Start Screen */
 #start-screen h1 {
   font-size: 4rem;
-  margin-bottom: 2rem;
-  text-transform: uppercase;
+  margin-bottom: 20px;
+  color: #00ffff;
+  text-shadow: 0 0 20px #00ffff;
+  letter-spacing: 5px;
+}
+
+#shop-container {
+  background: rgba(0, 20, 40, 0.8);
+  border: 2px solid #00ffff;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  min-width: 400px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+#shop-container h3 {
+  color: #ff00ff;
+  border-bottom: 1px solid #ff00ff;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+#shop-container p {
+  font-size: 1.2rem;
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+#scrap-val {
+  color: #ffff00;
+  font-weight: bold;
+}
+
+.upgrade-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upgrade-btn {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #00ffcc;
   color: #00ffcc;
-  text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+  padding: 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.upgrade-btn:hover:not(:disabled) {
+  background: #00ffcc;
+  color: #000;
+  box-shadow: 0 0 10px #00ffcc;
+}
+
+.upgrade-btn:disabled {
+  border-color: #555;
+  color: #555;
+  cursor: not-allowed;
 }
 
 #start-btn {

@@ -9,6 +9,19 @@ let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
 let score = 0;
 let level = 1;
 
+// --- PROGRESSION & UPGRADES ---
+let scrap = parseInt(localStorage.getItem('space_scrap')) || 0;
+let upgHealth = parseInt(localStorage.getItem('space_upg_health')) || 0;
+let upgHeat = parseInt(localStorage.getItem('space_upg_heat')) || 0;
+let upgMagnet = parseInt(localStorage.getItem('space_upg_magnet')) || 0;
+
+function saveProgression() {
+    localStorage.setItem('space_scrap', scrap);
+    localStorage.setItem('space_upg_health', upgHealth);
+    localStorage.setItem('space_upg_heat', upgHeat);
+    localStorage.setItem('space_upg_magnet', upgMagnet);
+}
+
 // --- DOM ELEMENTS ---
 const startScreen = document.getElementById('start-screen');
 const startBtn = document.getElementById('start-btn');
@@ -20,6 +33,8 @@ const heatBar = document.getElementById('heat-bar');
 const heatBarBg = document.getElementById('heat-bar-bg');
 const waveBanner = document.getElementById('wave-banner');
 const waveVal = document.getElementById('wave-val');
+const shopContainer = document.getElementById('shop-container');
+const scrapVal = document.getElementById('scrap-val');
 
 // --- SOUNDS FUNC ---
 function playSound(audioBuffer, volume = 0.5) {
@@ -156,6 +171,7 @@ function animate() {
             if (waveManager.currentWave % 5 === 0) {
                 waveVal.innerText = `BOSS WAVE ${waveManager.currentWave}`;
                 waveVal.style.color = '#ff5500';
+                playSound(sounds.siren, 0.8);
             } else {
                 waveVal.innerText = `WAVE ${waveManager.currentWave}`;
                 waveVal.style.color = '#00ffff';
@@ -190,9 +206,9 @@ function animate() {
             const p = powerups[i];
             p.update();
 
-            if (checkCollision(player.mesh, p.mesh, 2.0)) {
+            if (checkCollision(player.mesh, p.mesh, player.magnetRadius || 2.0)) {
                 if (p.type === 'health') {
-                    player.health = Math.min(100, player.health + 20);
+                    player.health = Math.min(player.maxHealth || 100, player.health + 20);
                 } else if (p.type === 'shield') {
                     player.shieldActive = true;
                 } else if (p.type === 'triple_shot') {
@@ -247,7 +263,15 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
-                        startScreen.innerHTML = `<h1>GAME OVER</h1><p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p><button id="start-btn" onclick="location.reload()">Restart</button>`;
+                        // Keep 50% of score as Scrap currency
+                        const earnedScrap = Math.floor(player.score * 0.5);
+                        scrap += earnedScrap;
+                        saveProgression();
+
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        <p style="margin-bottom: 20px; color: yellow;">Earned Scrap: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
                     }
@@ -279,7 +303,15 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
-                        startScreen.innerHTML = `<h1>GAME OVER</h1><p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p><button id="start-btn" onclick="location.reload()">Restart</button>`;
+                        // Keep 50% of score as Scrap currency
+                        const earnedScrap = Math.floor(player.score * 0.5);
+                        scrap += earnedScrap;
+                        saveProgression();
+
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        <p style="margin-bottom: 20px; color: yellow;">Earned Scrap: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
                     }
@@ -331,6 +363,68 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// --- SHOP LOGIC ---
+const upgBtnHealth = document.getElementById('upg-health');
+const upgBtnHeat = document.getElementById('upg-heat');
+const upgBtnMagnet = document.getElementById('upg-magnet');
+const lblLvlHealth = document.getElementById('lvl-health');
+const lblLvlHeat = document.getElementById('lvl-heat');
+const lblLvlMagnet = document.getElementById('lvl-magnet');
+const lblCostHealth = document.getElementById('cost-health');
+const lblCostHeat = document.getElementById('cost-heat');
+const lblCostMagnet = document.getElementById('cost-magnet');
+
+function updateShopUI() {
+    scrapVal.innerText = scrap;
+
+    // Formula for costs: 1000 + (level * 500)
+    const costHealth = 1000 + (upgHealth * 500);
+    const costHeat = 1000 + (upgHeat * 500);
+    const costMagnet = 1000 + (upgMagnet * 500);
+
+    lblLvlHealth.innerText = upgHealth;
+    lblCostHealth.innerText = upgHealth >= 5 ? 'MAX' : costHealth;
+    upgBtnHealth.disabled = upgHealth >= 5 || scrap < costHealth;
+
+    lblLvlHeat.innerText = upgHeat;
+    lblCostHeat.innerText = upgHeat >= 5 ? 'MAX' : costHeat;
+    upgBtnHeat.disabled = upgHeat >= 5 || scrap < costHeat;
+
+    lblLvlMagnet.innerText = upgMagnet;
+    lblCostMagnet.innerText = upgMagnet >= 5 ? 'MAX' : costMagnet;
+    upgBtnMagnet.disabled = upgMagnet >= 5 || scrap < costMagnet;
+}
+
+if (upgBtnHealth) {
+    upgBtnHealth.addEventListener('click', () => {
+        const cost = 1000 + (upgHealth * 500);
+        if (scrap >= cost && upgHealth < 5) {
+            scrap -= cost;
+            upgHealth++;
+            saveProgression();
+            updateShopUI();
+        }
+    });
+    upgBtnHeat.addEventListener('click', () => {
+        const cost = 1000 + (upgHeat * 500);
+        if (scrap >= cost && upgHeat < 5) {
+            scrap -= cost;
+            upgHeat++;
+            saveProgression();
+            updateShopUI();
+        }
+    });
+    upgBtnMagnet.addEventListener('click', () => {
+        const cost = 1000 + (upgMagnet * 500);
+        if (scrap >= cost && upgMagnet < 5) {
+            scrap -= cost;
+            upgMagnet++;
+            saveProgression();
+            updateShopUI();
+        }
+    });
+}
+
 // --- UI INTERACTIONS ---
 startBtn.addEventListener('click', () => {
     startBtn.blur(); // Remove focus so Spacebar doesn't trigger it again
@@ -338,6 +432,11 @@ startBtn.addEventListener('click', () => {
     gameState = 'PLAYING';
     startScreen.classList.add('hidden');
     hud.classList.remove('hidden');
+
+    // Apply Upgrades to Player
+    player.maxHealth = 100 + (upgHealth * 20); // Each level +20 HP
+    player.heatCooldownRate = 0.5 + (upgHeat * 0.1); // Each level cools faster
+    player.magnetRadius = 2.0 + (upgMagnet * 1.5); // Each level increases pickup radius
 
     player.reset();
     healthVal.innerText = player.health;
@@ -362,6 +461,10 @@ loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
 loadAssets(() => {
     loadingText.classList.add('hidden');
     startBtn.classList.remove('hidden');
+    if (shopContainer) {
+        shopContainer.classList.remove('hidden');
+        updateShopUI();
+    }
     scene.background = new THREE.Color(0x000000);
 });
 

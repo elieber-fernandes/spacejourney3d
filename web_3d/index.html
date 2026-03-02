@@ -21,9 +21,20 @@
     <!-- UI Container for HUD, Menus, etc., over the 3D Canvas -->
     <div id="ui-container">
       <div id="start-screen" class="screen">
-        <h1>Space Journey 3D</h1>
-        <p id="loading-text">Loading Assets... 0%</p>
-        <button id="start-btn" class="hidden">Start Game</button>
+        <h1 class="glitch" data-text="SPACE JOURNEY">SPACE JOURNEY</h1>
+        <p id="loading-text">Loading Assets...</p>
+        
+        <div id="shop-container" class="hidden">
+          <h3>UPGRADES</h3>
+          <p>Scrap: <span id="scrap-val">0</span></p>
+          <div class="upgrade-items">
+            <button class="upgrade-btn" id="upg-health">Max Health (Lvl <span id="lvl-health">0</span>) - <span id="cost-health">1000</span> Scrap</button>
+            <button class="upgrade-btn" id="upg-heat">Cooling (Lvl <span id="lvl-heat">0</span>) - <span id="cost-heat">1000</span> Scrap</button>
+            <button class="upgrade-btn" id="upg-magnet">Magnet (Lvl <span id="lvl-magnet">0</span>) - <span id="cost-magnet">1000</span> Scrap</button>
+          </div>
+        </div>
+
+        <button id="start-btn" class="hidden">Deploy Ship</button>
       </div>
       <div id="hud" class="screen hidden">
         <div class="stats-left">
