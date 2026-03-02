@@ -119,6 +119,8 @@ canvas {
   cursor: pointer;
   text-align: left;
   transition: all 0.2s;
+  pointer-events: auto;
+  /* Required to intercept clicks over canvas */
 }
 
 .upgrade-btn:hover:not(:disabled) {
