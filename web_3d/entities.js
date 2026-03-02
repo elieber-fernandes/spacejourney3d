@@ -23,10 +23,7 @@ export class Player {
         this.friction = 0.90;
         this.maxSpeed = 0.6;
 
-        // Dash settings
-        this.isDashing = false;
-        this.dashTimer = 0;
-        this.dashCooldown = 0;
+        // Dash settings removed
 
         // Powerup states
         this.shieldActive = false;
@@ -43,23 +40,45 @@ export class Player {
 
         this.health = 100;
         this.score = 0;
+
+        // Overheating
+        this.heat = 0;
+        this.isOverheated = false;
+        this.heatCooldownRate = 0.5; // Amount cooled per frame
+        this.baseHeatCost = 10;
+        this.overheatPenaltyTime = 120; // Frames disabled when maxed
+        this.currentPenalty = 0;
     }
 
-    update(keys, lasers) {
-        if (this.dashCooldown > 0) this.dashCooldown--;
+    update(keys, lasers, soundCallback) {
         if (this.tripleShotTimer > 0) this.tripleShotTimer--;
         if (this.speedBoostTimer > 0) this.speedBoostTimer--;
         if (this.spreadShotTimer > 0) this.spreadShotTimer--;
 
-        if (this.currentPenalty > 0) {
-            this.currentPenalty--;
-            if (this.currentPenalty <= 0) {
+        if (this.isOverheated) {
+            // Must wait for it to fully cool down
+            this.heat -= this.heatCooldownRate;
+            if (this.heat <= 0) {
+                this.heat = 0;
                 this.isOverheated = false;
             }
         } else {
-            // Cool down
-            this.heat -= this.heatCooldownRate;
-            if (this.heat < 0) this.heat = 0;
+            if (keys.Space) {
+                let heatIncrease = 0.6; // Base
+                if (this.tripleShotTimer > 0) heatIncrease = 1.2; // Plasma
+                else if (this.spreadShotTimer > 0) heatIncrease = 0.9; // Spread
+                else if (this.speedBoostTimer > 0) heatIncrease = 0.4; // Rapid
+
+                this.heat += heatIncrease;
+                if (this.heat >= 100) {
+                    this.heat = 100;
+                    this.isOverheated = true;
+                }
+            } else {
+                // Cool down 2x faster when not shooting
+                this.heat -= this.heatCooldownRate * 2;
+                if (this.heat < 0) this.heat = 0;
+            }
         }
 
         let currentAccel = this.acceleration;
@@ -76,33 +95,18 @@ export class Player {
         let moving = false;
         let accX = 0, accZ = 0;
 
-        if (!this.isDashing) {
-            if (keys.w || keys.ArrowUp) { accZ -= currentAccel; moving = true; }
-            if (keys.s || keys.ArrowDown) { accZ += currentAccel / 2; moving = true; }
-            if (keys.a || keys.ArrowLeft) { accX -= currentAccel; moving = true; }
-            if (keys.d || keys.ArrowRight) { accX += currentAccel; moving = true; }
+        if (keys.w || keys.ArrowUp) { accZ -= currentAccel; moving = true; }
+        if (keys.s || keys.ArrowDown) { accZ += currentAccel / 2; moving = true; }
+        if (keys.a || keys.ArrowLeft) { accX -= currentAccel; moving = true; }
+        if (keys.d || keys.ArrowRight) { accX += currentAccel; moving = true; }
 
-            if (keys.Shift) { // Shift handling
-                if (this.dashCooldown === 0 && moving) {
-                    this.isDashing = true;
-                    this.dashTimer = 15;
-                    this.dashCooldown = 120;
-                    const angle = Math.atan2(accZ, accX);
-                    this.velocity.x = Math.cos(angle) * 1.5;
-                    this.velocity.z = Math.sin(angle) * 1.5;
-                }
-            }
-        }
+        this.velocity.x += accX;
+        this.velocity.z += accZ;
+        this.velocity.multiplyScalar(this.friction);
 
-        if (!this.isDashing) {
-            this.velocity.x += accX;
-            this.velocity.z += accZ;
-            this.velocity.multiplyScalar(this.friction);
-
-            const speed = this.velocity.length();
-            if (speed > this.maxSpeed) {
-                this.velocity.setLength(this.maxSpeed);
-            }
+        const speed = this.velocity.length();
+        if (speed > this.maxSpeed) {
+            this.velocity.setLength(this.maxSpeed);
         }
 
         this.mesh.position.add(this.velocity);
@@ -125,20 +129,18 @@ export class Player {
 
         // Shoot
         if (keys.Space) {
-            this.shoot(lasers);
+            if (this.shoot(lasers)) {
+                if (soundCallback) soundCallback();
+            }
         }
     }
 
     shoot(lasers) {
-        if (this.isOverheated) return; // Cannot shoot
+        if (this.isOverheated) return false; // Cannot shoot
 
         const now = Date.now();
         if (now - this.lastShot > this.shootDelay) {
-
-            let heatCost = this.baseHeatCost;
-
             if (this.spreadShotTimer > 0) {
-                heatCost = 15; // Spread costs more heat
                 // 5-way arc
                 const spreadAngles = [-0.4, -0.2, 0, 0.2, 0.4];
                 for (let a of spreadAngles) {
@@ -148,7 +150,6 @@ export class Player {
                     lasers.push(l);
                 }
             } else if (this.tripleShotTimer > 0) {
-                heatCost = 20; // Plasma takes a lot of heat
                 // Plasma shot: massive, slow moving, piercing laser
                 const l = new Laser(this.scene, this.mesh.position.clone(), 0);
                 l.mesh.scale.set(4, 4, 4); // Huge
@@ -160,15 +161,10 @@ export class Player {
                 lasers.push(new Laser(this.scene, this.mesh.position.clone(), 0));
             }
 
-            this.heat += heatCost;
-            if (this.heat >= 100) {
-                this.heat = 100;
-                this.isOverheated = true;
-                this.currentPenalty = this.overheatPenaltyTime;
-            }
-
             this.lastShot = now;
+            return true;
         }
+        return false;
     }
 
     reset() {

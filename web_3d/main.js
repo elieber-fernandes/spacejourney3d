@@ -96,8 +96,6 @@ window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
             e.preventDefault(); // Prevent Space from pressing focused buttons or scrolling
             keys['Space'] = true;
-            player.shoot(lasers);
-            if (gameState === 'PLAYING') playSound(sounds.shoot);
         }
         else if (e.key === 'Shift') keys['Shift'] = true;
         else keys[e.key] = true;
@@ -168,10 +166,12 @@ function animate() {
         explosionManager.update();
 
         // Update Player
-        player.update(keys, lasers);
+        player.update(keys, lasers, () => {
+            if (gameState === 'PLAYING') playSound(sounds.shoot);
+        });
 
         // Spawn engine trails if player is moving or idling
-        engineTrail.spawnTrail(player.mesh.position, player.isDashing);
+        engineTrail.spawnTrail(player.mesh.position, false);
         engineTrail.update();
 
         // Update Heat UI
