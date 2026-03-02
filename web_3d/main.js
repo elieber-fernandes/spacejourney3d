@@ -96,6 +96,8 @@ const shipStatus = document.getElementById('ship-status');
 const buyShipBtn = document.getElementById('buy-ship-btn');
 const shipCost = document.getElementById('ship-cost');
 
+const floatingTextContainer = document.getElementById('floating-text-container');
+
 let viewingShipIndex = currentShipIndex;
 
 // --- SOUNDS FUNC ---
@@ -481,7 +483,6 @@ function animate() {
                 playSound(sounds.powerup);
 
                 // Visual feedbacks
-                explosionManager.createPowerUpSparkle(p.mesh.position, p.color);
                 showFloatingText(text, p.color, p.mesh.position);
 
                 p.destroy();
