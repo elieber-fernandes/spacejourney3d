@@ -53,6 +53,10 @@ canvas {
   pointer-events: none;
 }
 
+.hidden * {
+  pointer-events: none !important;
+}
+
 /* Start Screen */
 #start-screen h1 {
   font-size: 4rem;
