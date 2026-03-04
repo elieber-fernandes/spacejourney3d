@@ -101,6 +101,18 @@ const floatingTextContainer = document.getElementById('floating-text-container')
 let viewingShipIndex = currentShipIndex;
 
 // --- SOUNDS FUNC ---
+const bgListener = new THREE.AudioListener();
+const bgMusic = new THREE.Audio(bgListener);
+
+function playBgMusic() {
+    if (sounds.bgMusic && !bgMusic.isPlaying) {
+        bgMusic.setBuffer(sounds.bgMusic);
+        bgMusic.setLoop(true);
+        bgMusic.setVolume(0.4);
+        bgMusic.play();
+    }
+}
+
 function playSound(audioBuffer, volume = 0.5) {
     if (!audioBuffer) return;
     const listener = new THREE.AudioListener();
@@ -124,6 +136,7 @@ scene.fog = new THREE.FogExp2(0x000000, 0.002);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 15, 20);
 camera.lookAt(0, 0, 0);
+camera.add(bgListener);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -834,6 +847,8 @@ if (prevShipBtn && nextShipBtn && buyShipBtn) {
 // --- UI INTERACTIONS ---
 startBtn.addEventListener('click', () => {
     startBtn.blur(); // Remove focus so Spacebar doesn't trigger it again
+
+    playBgMusic();
 
     gameState = 'PLAYING';
     startScreen.classList.add('hidden');

@@ -9,6 +9,7 @@ export const images = {
 };
 
 export const sounds = {
+    bgMusic: null,
     shoot: null,
     move: null,
     explosion: null,
@@ -112,6 +113,7 @@ function generateSpeedsterShootBuffer() {
 export function loadAssets(onLoadCallback) {
     loadingManager.onLoad = onLoadCallback;
 
+    audioLoader.load('./tema.mp3', (buffer) => sounds.bgMusic = buffer);
     audioLoader.load('assets/shoot.ogg', (buffer) => sounds.shoot = buffer);
     audioLoader.load('assets/ship_moving.ogg', (buffer) => sounds.move = buffer);
     audioLoader.load('assets/laser2.ogg', (buffer) => sounds.laser2 = buffer);
