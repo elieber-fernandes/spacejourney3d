@@ -2,9 +2,28 @@ import * as THREE from 'three';
 
 import { models } from './src/assets.js';
 
+export function fitModelToTargetSize(model, targetSize) {
+    if (!model) return;
+    // Reset scale first
+    model.scale.set(1, 1, 1);
+
+    // Ensure world matrices are updated so Box3 calculates correctly
+    model.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) {
+        const scale = targetSize / maxDim;
+        model.scale.setScalar(scale);
+    }
+}
+
 // --- ENTITIES MODULE ---
 export class Player {
-    constructor(scene, modelKey = 'basico') {
+    constructor(scene, modelKey = 'basico', targetSize = 3) {
         this.scene = scene;
 
         // Clone the loaded GLTF scene
@@ -16,13 +35,10 @@ export class Player {
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
-                    // Optional: customize colors based on ship if the gltf doesn't have it baked perfectly
                 }
             });
 
-            // Scale and rotate appropriately depending on the source model's orientation
-            // We might need to adjust this depending on the exactly exported GLB
-            // Currently assuming the GLB faces forward properly.
+            fitModelToTargetSize(this.mesh, targetSize);
         } else {
             // Fallback just in case
             const geo = new THREE.ConeGeometry(1.5, 3, 8);
@@ -188,9 +204,11 @@ export class Player {
                     l.mesh = models['plasma'].clone();
                     l.mesh.position.copy(this.mesh.position).setZ(-1.5);
                     this.scene.add(l.mesh);
+                    fitModelToTargetSize(l.mesh, 4); // Huge plasma shot
+                } else {
+                    l.mesh.scale.set(4, 4, 4); // Huge (fallback)
                 }
 
-                l.mesh.scale.set(4, 4, 4); // Huge
                 l.mesh.traverse((child) => {
                     if (child.isMesh) {
                         child.material = child.material.clone();
@@ -225,6 +243,37 @@ export class Player {
         this.isOverheated = false;
         this.currentPenalty = 0;
     }
+
+    equipModel(modelKey, targetSize) {
+        if (this.mesh) {
+            this.scene.remove(this.mesh);
+            if (this.mesh.geometry) this.mesh.geometry.dispose();
+            if (this.mesh.material) {
+                if (Array.isArray(this.mesh.material)) this.mesh.material.forEach(m => m.dispose());
+                else this.mesh.material.dispose();
+            }
+        }
+
+        const sourceModel = models[modelKey];
+        if (sourceModel) {
+            this.mesh = sourceModel.clone();
+            this.mesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                }
+            });
+            fitModelToTargetSize(this.mesh, targetSize);
+        } else {
+            // Fallback just in case
+            const geo = new THREE.ConeGeometry(1.5, 3, 8);
+            geo.rotateX(-Math.PI / 2);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+            this.mesh = new THREE.Mesh(geo, mat);
+            this.mesh.castShadow = true;
+        }
+
+        this.scene.add(this.mesh);
+    }
 }
 
 export class Laser {
@@ -235,6 +284,7 @@ export class Laser {
         const sourceModel = models['laser_player'];
         if (sourceModel) {
             this.mesh = sourceModel.clone();
+            fitModelToTargetSize(this.mesh, 1); // target dimension 1 length
         } else {
             const geo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
             geo.rotateX(Math.PI / 2);
@@ -282,6 +332,7 @@ export class Enemy {
                     child.castShadow = true;
                 }
             });
+            fitModelToTargetSize(this.mesh, size);
         } else {
             // Fallback geometry if model fails to load
             let geo = new THREE.BoxGeometry(2, 2, 2);
@@ -330,7 +381,7 @@ export class Enemy {
 export class BasicEnemy extends Enemy {
     constructor(scene, x, y, waveNum = 1) {
         const hp = 1 + Math.floor(waveNum * 0.5);
-        super(scene, x, y, 'basico', 2.5, hp, 10, 'box');
+        super(scene, x, y, 'basico', 3, hp, 10, 'box'); // size 3 to match original BoxGeometry(2,2,2) with diagonal or cone(1.5,3)
         this.speed = 0.15 + (Math.random() * 0.1);
     }
 
@@ -406,6 +457,7 @@ export class EnemyLaser {
                     child.material.color.setHex(0xff00ff);
                 }
             });
+            fitModelToTargetSize(this.mesh, 1);
         } else {
             const geo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
             geo.rotateX(Math.PI / 2);
@@ -446,7 +498,7 @@ export class EnemyLaser {
 export class KamikazeEnemy extends Enemy {
     constructor(scene, x, y, waveNum = 1) {
         const hp = 1 + Math.floor(waveNum * 0.3);
-        super(scene, x, y, 'basico', 2.5, hp, 15, 'sphere'); // Using basico as fallback or specific kamikaze model if available. Currently we don't have a specific kamikaze model, so let's use 'basico' or fallback to sphere geometry.
+        super(scene, x, y, 'basico', 3, hp, 15, 'sphere'); // Icosahedron 1.5 radius -> max dim 3
         this.speed = 0.35; // Increased speed
         this.baseColor = new THREE.Color(0xffff00);
         this.alertColor = new THREE.Color(0xff0000);
@@ -502,7 +554,7 @@ export class KamikazeEnemy extends Enemy {
 export class HeavyTankEnemy extends Enemy {
     constructor(scene, x, y, waveNum = 1) {
         const hp = 6 + Math.floor(waveNum * 1.5);
-        super(scene, x, y, 'tanque', 4.5, hp, 50, 'box');
+        super(scene, x, y, 'tanque', 4, hp, 50, 'box'); // box(4,4,4) -> max dim 4
         this.speed = 0.05;
         this.shootCooldown = 120;
         this.currentCooldown = 0;
@@ -552,9 +604,6 @@ export class BossEnemy extends Enemy {
         this.currentCooldown = 60; // initial delay
         this.timeOffset = Math.random() * Math.PI * 2;
         this.startY = y;
-
-        // Scale up the boss model to be imposing
-        this.mesh.scale.set(1.5, 1.5, 1.5);
     }
 
     update(player, enemyLasers) {
@@ -599,7 +648,7 @@ export class BossEnemy extends Enemy {
 export class DashBoss extends Enemy {
     constructor(scene, x, y, waveNum = 10) {
         const hp = 70 + (waveNum * 15);
-        super(scene, x, y, 'boss', 7, hp, 1000, 'cone');
+        super(scene, x, y, 'boss', 12, hp, 1000, 'cone'); // Cylinder(6) -> max dim 12
 
         // Give it a distinct tint so it doesn't look identical to the regular boss
         this.mesh.traverse((child) => {
@@ -707,12 +756,8 @@ export class DashBoss extends Enemy {
 
 export class Meteor extends Enemy {
     constructor(scene, x, y, dirX, dirZ) {
-        const radius = 2 + Math.random() * 1.5;
-        // The GLTF model for meteor might need scaling based on radius
-        super(scene, x, y, 'meteoro', radius * 2, 4, 10, 'dodeca');
-
-        // Random scale variance
-        this.mesh.scale.set(radius * 0.5, radius * 0.5, radius * 0.5);
+        const radius = 2 + Math.random() * 1.5; // radius between 2 and 3.5 -> max dim between 4 and 7
+        super(scene, x, y, 'meteoro', radius * 2, hp = 4, scoreValue = 10, fallbackGeoStr = 'dodeca');
 
         this.velX = dirX * (0.1 + Math.random() * 0.2);
         this.velZ = dirZ * (0.1 + Math.random() * 0.2);
@@ -817,7 +862,7 @@ export class HomingMissile extends Laser {
                 child.material.color.setHex(0xffaa00);
             }
         });
-        this.mesh.scale.set(1.5, 1.5, 1.5);
+        fitModelToTargetSize(this.mesh, 1.5); // ConGeometry(0.3, 1.5) -> max 1.5
 
         this.velocity = new THREE.Vector3(0, 0, -1.5);
         this.maxSpeed = 1.2;

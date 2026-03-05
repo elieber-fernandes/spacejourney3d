@@ -146,9 +146,9 @@ export function loadAssets(onLoadCallback) {
     gltfLoader.load('assets/inimigos/tanque.glb', (gltf) => models.tanque = gltf.scene);
 
     // Load Models - Ships
-    gltfLoader.load('assets/naves/ship_laranja.glb', (gltf) => models.ship_laranja = gltf.scene);
-    gltfLoader.load('assets/naves/ship_player.glb', (gltf) => models.ship_player = gltf.scene);
-    gltfLoader.load('assets/naves/ship_rosa.glb', (gltf) => models.ship_rosa = gltf.scene);
+    gltfLoader.load('assets/naves/nave_basica.glb', (gltf) => models.nave_basica = gltf.scene);
+    gltfLoader.load('assets/naves/nave_velocista.glb', (gltf) => models.nave_velocista = gltf.scene);
+    gltfLoader.load('assets/naves/nave_pesada.glb', (gltf) => models.nave_pesada = gltf.scene);
 
     // Load Models - Powerups
     gltfLoader.load('assets/power_ups/power_up_escudo.glb', (gltf) => models.pu_escudo = gltf.scene);
