@@ -400,9 +400,8 @@ export class BasicEnemy extends Enemy {
 
         this.mesh.position.add(this.velocity);
 
-        // Spin randomly
-        this.mesh.rotation.x += 0.02;
-        this.mesh.rotation.y += 0.02;
+        // Point towards the player, but don't shoot
+        this.mesh.rotation.y = -angle - Math.PI / 2;
     }
 }
 
@@ -438,7 +437,12 @@ export class ShooterEnemy extends Enemy {
 
     shoot(angle, enemyLasers) {
         const startPos = this.mesh.position.clone();
-        enemyLasers.push(new EnemyLaser(this.scene, startPos, angle));
+        const laser = new EnemyLaser(this.scene, startPos, angle);
+
+        // Make the shooter enemy laser visually wider
+        laser.mesh.scale.set(1.5, 1, 1.5); // Increase thickness on X and Z relative to its local orientation 
+
+        enemyLasers.push(laser);
         this.currentCooldown = this.shootCooldown;
     }
 }
