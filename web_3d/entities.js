@@ -810,6 +810,7 @@ export class PowerUp {
                     child.material.emissiveIntensity = 0.5;
                 }
             });
+            fitModelToTargetSize(this.mesh, 2);
         } else {
             const geo = new THREE.OctahedronGeometry(1);
             const mat = new THREE.MeshStandardMaterial({
@@ -827,6 +828,7 @@ export class PowerUp {
 
         this.lifeTime = 600;
         this.active = true;
+        this.baseScale = this.mesh.scale.clone();
     }
 
     update() {
@@ -839,8 +841,8 @@ export class PowerUp {
         this.mesh.rotation.y += 0.05;
         this.mesh.rotation.x += 0.02;
 
-        const scale = 1 + Math.sin(Date.now() * 0.005) * 0.2;
-        this.mesh.scale.set(scale, scale, scale);
+        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+        this.mesh.scale.copy(this.baseScale).multiplyScalar(pulse);
     }
 
     destroy() {
