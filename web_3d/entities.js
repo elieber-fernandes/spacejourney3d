@@ -439,8 +439,8 @@ export class ShooterEnemy extends Enemy {
         const startPos = this.mesh.position.clone();
         const laser = new EnemyLaser(this.scene, startPos, angle);
 
-        // Make the shooter enemy laser visually wider
-        laser.mesh.scale.set(1.5, 1, 1.5); // Increase thickness on X and Z relative to its local orientation 
+        // Ensure the laser uses its natural proportions
+        // (Modifiers removed to maintain 1/3 scale of the ship naturally)
 
         enemyLasers.push(laser);
         this.currentCooldown = this.shootCooldown;
@@ -461,7 +461,8 @@ export class EnemyLaser {
                     child.material.color.setHex(0xff00ff);
                 }
             });
-            fitModelToTargetSize(this.mesh, 1);
+            // Set scale to exactly 1/3 of the base ship size (which is 3)
+            fitModelToTargetSize(this.mesh, 1.0);
         } else {
             const geo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
             geo.rotateX(Math.PI / 2);
@@ -591,7 +592,7 @@ export class HeavyTankEnemy extends Enemy {
     shoot(angle, enemyLasers) {
         const startPos = this.mesh.position.clone();
         const laser = new EnemyLaser(this.scene, startPos, angle);
-        laser.mesh.scale.set(2, 2, 2);
+        laser.mesh.scale.multiplyScalar(2); // Double the base (now smaller) size
         laser.mesh.material.color.setHex(0xff0000); // Red laser
         laser.isHeavy = true;
         enemyLasers.push(laser);
@@ -639,7 +640,7 @@ export class BossEnemy extends Enemy {
 
         for (let angle of angles) {
             const laser = new EnemyLaser(this.scene, startPos, angle);
-            laser.mesh.scale.set(1.5, 1.5, 1.5);
+            laser.mesh.scale.multiplyScalar(1.5);
             laser.mesh.material.color.setHex(0xff8800); // Orange boss laser
             laser.isHeavy = true;
             enemyLasers.push(laser);
@@ -841,7 +842,8 @@ export class PowerUp {
         this.mesh.rotation.y += 0.05;
         this.mesh.rotation.x += 0.02;
 
-        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.2;
+        // 90% less animation: use 0.02 instead of 0.2
+        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.02;
         this.mesh.scale.copy(this.baseScale).multiplyScalar(pulse);
     }
 
