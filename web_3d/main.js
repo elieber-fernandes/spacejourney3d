@@ -36,34 +36,21 @@ const SHIPS = [
         name: "Nave Básica",
         cost: 0,
         color: 0x00ffff,
-        createMesh: () => {
-            const geo = new THREE.ConeGeometry(1.5, 3, 8);
-            geo.rotateX(-Math.PI / 2);
-            return geo;
-        },
+        modelKey: 'basico',
         stats: { hpBase: 100, speedBase: 0.6, coolingBase: 0.5, heatCostMult: 1.0 }
     },
     {
         name: "Velocista",
         cost: 5000,
         color: 0xffff00,
-        createMesh: () => {
-            // Sleeker, thinner design
-            const geo = new THREE.ConeGeometry(1.0, 4, 4);
-            geo.rotateX(-Math.PI / 2);
-            return geo;
-        },
+        modelKey: 'ship_laranja',
         stats: { hpBase: 70, speedBase: 0.8, coolingBase: 0.6, heatCostMult: 0.8 } // Faster, better cooling, less heat cost, but fragile
     },
     {
         name: "Cruzador Pesado",
         cost: 10000,
         color: 0xff0000,
-        createMesh: () => {
-            // Bulky, wide design
-            const geo = new THREE.BoxGeometry(3, 1.5, 3);
-            return geo;
-        },
+        modelKey: 'tanque',
         stats: { hpBase: 200, speedBase: 0.4, coolingBase: 0.4, heatCostMult: 1.5 } // Tanky, slow, overheats slightly faster (or slow cool)
     }
 ];
@@ -168,7 +155,8 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // --- ENTITIES & MANAGERS ---
-const player = new Player(scene);
+// Initially spawn player with their currently equipped ship
+const player = new Player(scene, SHIPS[currentShipIndex].modelKey);
 let lasers = [];
 let enemyLasers = [];
 let enemies = [];

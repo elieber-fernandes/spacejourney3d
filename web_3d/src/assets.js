@@ -1,11 +1,24 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export const loadingManager = new THREE.LoadingManager();
 const textureLoader = new THREE.TextureLoader(loadingManager);
 const audioLoader = new THREE.AudioLoader(loadingManager);
+const gltfLoader = new GLTFLoader(loadingManager);
 
 export const images = {
     bg: null // No longer using bg texture, we use black background
+};
+
+export const models = {
+    // Enemies
+    atirador: null, basico: null, boss: null, meteoro: null, tanque: null,
+    // Ships
+    ship_laranja: null, ship_player: null, ship_rosa: null,
+    // Powerups
+    pu_escudo: null, pu_plasma: null, pu_tiro_multiplo: null, pu_tiro_rapido: null, pu_tiro_teleguiado: null, pu_vida: null,
+    // Shots
+    laser_inimigo: null, laser_player: null, plasma: null
 };
 
 export const sounds = {
@@ -113,13 +126,40 @@ function generateSpeedsterShootBuffer() {
 export function loadAssets(onLoadCallback) {
     loadingManager.onLoad = onLoadCallback;
 
-    audioLoader.load('assets/tema.mp3', (buffer) => sounds.bgMusic = buffer);
-    audioLoader.load('assets/shoot.ogg', (buffer) => sounds.shoot = buffer);
-    audioLoader.load('assets/ship_moving.ogg', (buffer) => sounds.move = buffer);
-    audioLoader.load('assets/laser2.ogg', (buffer) => sounds.laser2 = buffer);
+    // Load Audio
+    audioLoader.load('assets/sons/tema.mp3', (buffer) => sounds.bgMusic = buffer);
+    audioLoader.load('assets/sons/shoot.ogg', (buffer) => sounds.shoot = buffer);
+    audioLoader.load('assets/sons/ship_moving.ogg', (buffer) => sounds.move = buffer);
+    audioLoader.load('assets/sons/laser2.ogg', (buffer) => sounds.laser2 = buffer);
+    audioLoader.load('assets/sons/explosion.ogg', (buffer) => sounds.explosion = buffer);
 
+    // Generate Audio
     generateSirenBuffer();
-    generateExplosionBuffer();
     generateHomingExplosionBuffer();
     generateSpeedsterShootBuffer();
+
+    // Load Models - Enemies
+    gltfLoader.load('assets/inimigos/atirador.glb', (gltf) => models.atirador = gltf.scene);
+    gltfLoader.load('assets/inimigos/basico.glb', (gltf) => models.basico = gltf.scene);
+    gltfLoader.load('assets/inimigos/boss.glb', (gltf) => models.boss = gltf.scene);
+    gltfLoader.load('assets/inimigos/meteoro.glb', (gltf) => models.meteoro = gltf.scene);
+    gltfLoader.load('assets/inimigos/tanque.glb', (gltf) => models.tanque = gltf.scene);
+
+    // Load Models - Ships
+    gltfLoader.load('assets/naves/ship_laranja.glb', (gltf) => models.ship_laranja = gltf.scene);
+    gltfLoader.load('assets/naves/ship_player.glb', (gltf) => models.ship_player = gltf.scene);
+    gltfLoader.load('assets/naves/ship_rosa.glb', (gltf) => models.ship_rosa = gltf.scene);
+
+    // Load Models - Powerups
+    gltfLoader.load('assets/power_ups/power_up_escudo.glb', (gltf) => models.pu_escudo = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_plasma.glb', (gltf) => models.pu_plasma = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_tiro_multiplo.glb', (gltf) => models.pu_tiro_multiplo = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_tiro_rapido.glb', (gltf) => models.pu_tiro_rapido = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_tiro_teleguiado.glb', (gltf) => models.pu_tiro_teleguiado = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_vida.glb', (gltf) => models.pu_vida = gltf.scene);
+
+    // Load Models - Shots
+    gltfLoader.load('assets/tiros/laser_beam_inimigos.glb', (gltf) => models.laser_inimigo = gltf.scene);
+    gltfLoader.load('assets/tiros/laser_beam_player.glb', (gltf) => models.laser_player = gltf.scene);
+    gltfLoader.load('assets/tiros/plasma.glb', (gltf) => models.plasma = gltf.scene);
 }
