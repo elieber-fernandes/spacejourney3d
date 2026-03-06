@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Player, Laser, PowerUp } from './entities.js';
-import { loadAssets, loadingManager, sounds } from './src/assets.js';
+import { Player, Laser, PowerUp, fitModelToTargetSize } from './entities.js';
+import { loadAssets, loadingManager, sounds, models } from './src/assets.js';
 import { WaveManager } from './src/managers.js';
 import { ExplosionManager, EngineTrail } from './src/effects.js';
 
@@ -87,8 +87,31 @@ const buyShipBtn = document.getElementById('buy-ship-btn');
 const shipCost = document.getElementById('ship-cost');
 
 const floatingTextContainer = document.getElementById('floating-text-container');
+const shipPreviewContainer = document.getElementById('ship-preview');
 
 let viewingShipIndex = currentShipIndex;
+
+// --- PREVIEW SCENE SETUP ---
+const previewScene = new THREE.Scene();
+const previewCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+previewCamera.position.set(0, 5, 10);
+previewCamera.lookAt(0, 0, 0);
+
+const previewRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+previewRenderer.setSize(150, 150);
+if (shipPreviewContainer) {
+    shipPreviewContainer.appendChild(previewRenderer.domElement);
+}
+
+const previewAmbientLight = new THREE.AmbientLight(0xffffff, 0.8);
+previewScene.add(previewAmbientLight);
+const previewDirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+previewDirLight.position.set(5, 10, 5);
+previewScene.add(previewDirLight);
+
+let currentPreviewMesh = null;
+export { previewScene, currentPreviewMesh };
+// --- END PREVIEW SCENE SETUP ---
 
 // --- SOUNDS FUNC ---
 const bgListener = new THREE.AudioListener();
@@ -386,6 +409,15 @@ function animate() {
     const now = Date.now();
     const dt = now - lastTime;
     lastTime = now;
+
+    if (gameState === 'START') {
+        if (currentPreviewMesh) {
+            currentPreviewMesh.rotation.y += 0.01;
+        }
+        if (shipPreviewContainer && window.getComputedStyle(shipPreviewContainer.closest('#hangar-container')).display !== 'none') {
+            previewRenderer.render(previewScene, previewCamera);
+        }
+    }
 
     if (gameState === 'PLAYING') {
         // Camera Shake
@@ -808,6 +840,25 @@ function updateHangarUI() {
         buyShipBtn.style.display = 'inline-block';
         shipCost.innerText = ship.cost;
         buyShipBtn.disabled = scrap < ship.cost;
+    }
+
+    // Update 3D Preview
+    if (currentPreviewMesh) {
+        previewScene.remove(currentPreviewMesh);
+    }
+    const sourceModel = models[ship.modelKey];
+    if (sourceModel) {
+        currentPreviewMesh = sourceModel.clone();
+
+        // Ensure materials are distinct and visible in the preview lighting
+        currentPreviewMesh.traverse((child) => {
+            if (child.isMesh) {
+                child.material = child.material.clone();
+            }
+        });
+
+        fitModelToTargetSize(currentPreviewMesh, 5); // Scaled up slightly for the preview box
+        previewScene.add(currentPreviewMesh);
     }
 }
 
