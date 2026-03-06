@@ -489,7 +489,7 @@ function animate() {
             const p = powerups[i];
             p.update();
 
-            if (checkCollision(player.mesh, p.mesh, player.magnetRadius || 2.0)) {
+            if (checkCollision(player.mesh, p.mesh, player.magnetRadius || 3.5)) {
                 let text = "";
                 if (p.type === 'health') {
                     player.health = Math.min(player.maxHealth || 100, player.health + 20);
@@ -497,8 +497,7 @@ function animate() {
                 } else if (p.type === 'shield') {
                     player.shieldActive = true;
                     text = "ESCUDO ATIVO";
-                } else if (p.type === 'triple_shot') {
-                    // This is now plasma_shot
+                } else if (p.type === 'plasma_shot') {
                     player.tripleShotTimer = 800;
                     player.spreadShotTimer = 0;
                     player.speedBoostTimer = 0;
@@ -520,6 +519,7 @@ function animate() {
 
                 // Visual feedbacks
                 showFloatingText(text, p.color, p.mesh.position);
+                explosionManager.createHitSpark(p.mesh.position, p.color);
 
                 p.destroy();
                 powerups.splice(i, 1);

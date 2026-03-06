@@ -836,15 +836,11 @@ export class PowerUp {
         this.lifeTime--;
         if (this.lifeTime <= 0) this.active = false;
 
-        // Drift towards the player (+Z axis)
+        // Restore drift towards the player (+Z axis)
         this.mesh.position.z += 0.08;
 
-        this.mesh.rotation.y += 0.05;
-        this.mesh.rotation.x += 0.02;
-
-        // 90% less animation: use 0.02 instead of 0.2
-        const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.02;
-        this.mesh.scale.copy(this.baseScale).multiplyScalar(pulse);
+        // Giro também removido
+        // Pulsação/balanço removido conforme pedido
     }
 
     destroy() {
