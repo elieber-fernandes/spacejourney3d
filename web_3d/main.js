@@ -912,7 +912,7 @@ startBtn.addEventListener('click', () => {
     player.maxSpeed = currentShip.stats.speedBase;
     player.heatMultiplier = currentShip.stats.heatCostMult; // We will use this in shoot logic
 
-    player.magnetRadius = 2.0 + (upgMagnet * 1.5); // Each level increases pickup radius
+    player.magnetRadius = 4.0 + (upgMagnet * 1.5); // Base hitbox larger to match 3D models
 
     player.reset();
     healthVal.innerText = player.health;

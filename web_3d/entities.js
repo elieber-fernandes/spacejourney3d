@@ -21,6 +21,28 @@ export function fitModelToTargetSize(model, targetSize) {
     }
 }
 
+// --- HELPER FOR SHARED MATERIALS ---
+function getSharedMaterial(model, colorHex, emissiveHex, isTransparent, opacity) {
+    if (!model) return null;
+    if (!model.userData.sharedMats) model.userData.sharedMats = {};
+    const key = `${colorHex}_${emissiveHex}_${isTransparent}_${opacity}`;
+    if (!model.userData.sharedMats[key]) {
+        let baseMat = null;
+        model.traverse(c => { if (c.isMesh && !baseMat) baseMat = c.material; });
+        if (baseMat) {
+            const newMat = baseMat.clone();
+            if (colorHex !== undefined && colorHex !== null) newMat.color.setHex(colorHex);
+            if (emissiveHex !== undefined && emissiveHex !== null) newMat.emissive = new THREE.Color(emissiveHex);
+            if (isTransparent) {
+                newMat.transparent = true;
+                newMat.opacity = opacity;
+            }
+            model.userData.sharedMats[key] = newMat;
+        }
+    }
+    return model.userData.sharedMats[key];
+}
+
 // --- ENTITIES MODULE ---
 export class Player {
     constructor(scene, modelKey = 'basico', targetSize = 3) {
@@ -73,7 +95,7 @@ export class Player {
 
         this.maxHealth = 100;
         this.health = this.maxHealth;
-        this.magnetRadius = 2.0;
+        this.magnetRadius = 4.0;
 
         this.score = 0;
 
@@ -205,16 +227,15 @@ export class Player {
                     l.mesh.position.copy(this.mesh.position).setZ(-1.5);
                     this.scene.add(l.mesh);
                     fitModelToTargetSize(l.mesh, 4); // Huge plasma shot
+
+                    const mat = getSharedMaterial(models['plasma'], 0x00ffff, null, false, 1);
+                    if (mat) {
+                        l.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
+                    }
                 } else {
                     l.mesh.scale.set(4, 4, 4); // Huge (fallback)
                 }
 
-                l.mesh.traverse((child) => {
-                    if (child.isMesh) {
-                        child.material = child.material.clone();
-                        child.material.color.setHex(0x00ffff); // Cyan
-                    }
-                });
                 l.speedZ = 0.4; // Slower
                 l.isPlasma = true; // Special flag we'll use in main.js
                 lasers.push(l);
@@ -247,11 +268,7 @@ export class Player {
     equipModel(modelKey, targetSize) {
         if (this.mesh) {
             this.scene.remove(this.mesh);
-            if (this.mesh.geometry) this.mesh.geometry.dispose();
-            if (this.mesh.material) {
-                if (Array.isArray(this.mesh.material)) this.mesh.material.forEach(m => m.dispose());
-                else this.mesh.material.dispose();
-            }
+            // No dispose calls needed as materials/geometries are shared
         }
 
         const sourceModel = models[modelKey];
@@ -267,7 +284,7 @@ export class Player {
             // Fallback just in case
             const geo = new THREE.ConeGeometry(1.5, 3, 8);
             geo.rotateX(-Math.PI / 2);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00ffff });
+            const mat = getSharedMaterial(null, 0x00ffff); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
             this.mesh.castShadow = true;
         }
@@ -288,7 +305,7 @@ export class Laser {
         } else {
             const geo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
             geo.rotateX(Math.PI / 2);
-            const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const mat = getSharedMaterial(null, 0xff0000); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
         }
 
@@ -311,12 +328,8 @@ export class Laser {
 
     destroy() {
         this.scene.remove(this.mesh);
-        // Clean up only if it's a procedural geometry (fallback), not a GLTF clone
-        if (this.mesh.geometry) this.mesh.geometry.dispose();
-        if (this.mesh.material) {
-            if (Array.isArray(this.mesh.material)) this.mesh.material.forEach(m => m.dispose());
-            else this.mesh.material.dispose();
-        }
+        // We do NOT dispose geometries or materials here anymore because they are either
+        // shared from GLTF loading or pooled via getSharedMaterial.
     }
 }
 
@@ -340,11 +353,7 @@ export class Enemy {
             else if (fallbackGeoStr === 'sphere') geo = new THREE.IcosahedronGeometry(1.5);
             else if (fallbackGeoStr === 'dodeca') geo = new THREE.DodecahedronGeometry(2);
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: 0xff0000,
-                roughness: 0.8,
-                metalness: 0.1
-            });
+            const mat = getSharedMaterial(null, 0xff0000, 0x000000, false, 1); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
             this.mesh.castShadow = true;
         }
@@ -370,11 +379,6 @@ export class Enemy {
 
     destroy() {
         this.scene.remove(this.mesh);
-        if (this.mesh.geometry) this.mesh.geometry.dispose();
-        if (this.mesh.material) {
-            if (Array.isArray(this.mesh.material)) this.mesh.material.forEach(m => m.dispose());
-            else this.mesh.material.dispose();
-        }
     }
 }
 
@@ -454,11 +458,11 @@ export class EnemyLaser {
         const sourceModel = models['laser_inimigo'];
         if (sourceModel) {
             this.mesh = sourceModel.clone();
+            // Default color red if no shared mat, but main.js might override
+            const mat = getSharedMaterial(sourceModel, 0xff00ff); // Purple laser
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
-                    child.material = child.material.clone();
-                    // Original laser logic relied strongly on color setting, let's keep it robust
-                    child.material.color.setHex(0xff00ff);
+                    child.material = mat;
                 }
             });
             // Set scale to exactly 1/3 of the base ship size (which is 3)
@@ -492,11 +496,6 @@ export class EnemyLaser {
 
     destroy() {
         this.scene.remove(this.mesh);
-        if (this.mesh.geometry) this.mesh.geometry.dispose();
-        if (this.mesh.material) {
-            if (Array.isArray(this.mesh.material)) this.mesh.material.forEach(m => m.dispose());
-            else this.mesh.material.dispose();
-        }
     }
 }
 
@@ -505,18 +504,11 @@ export class KamikazeEnemy extends Enemy {
         const hp = 1 + Math.floor(waveNum * 0.3);
         super(scene, x, y, 'basico', 3, hp, 15, 'sphere'); // Icosahedron 1.5 radius -> max dim 3
         this.speed = 0.35; // Increased speed
-        this.baseColor = new THREE.Color(0xffff00);
-        this.alertColor = new THREE.Color(0xff0000);
 
-        // Since we are cloning a gltf, changing colors dynamically requires traversing
-        this.mesh.traverse((child) => {
-            if (child.isMesh) {
-                // If it relies on a material array, pick the first or clone it to avoid shared material changes
-                child.material = child.material.clone();
-                child.material.color.copy(this.baseColor);
-                child.material.emissive = child.material.emissive || new THREE.Color(0x000000);
-            }
-        });
+        const mat = getSharedMaterial(models['basico'], 0xffff00, 0x000000, false, 1);
+        if (mat) {
+            this.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
+        }
     }
 
     update(player) {
@@ -541,12 +533,11 @@ export class KamikazeEnemy extends Enemy {
             // Blink faster as it gets closer
             const blinkSpeed = Math.max(0.05, dist * 0.01);
             if (Date.now() % (blinkSpeed * 1000) < (blinkSpeed * 500)) {
-                this.mesh.material.color.copy(this.alertColor);
-                this.mesh.material.emissive.copy(this.alertColor);
-                this.mesh.material.emissiveIntensity = 0.8;
+                const alertMat = getSharedMaterial(models['basico'], 0xff0000, 0xff0000, false, 1);
+                if (alertMat) this.mesh.traverse(c => { if (c.isMesh) c.material = alertMat; });
             } else {
-                this.mesh.material.color.copy(this.baseColor);
-                this.mesh.material.emissiveIntensity = 0;
+                const baseMat = getSharedMaterial(models['basico'], 0xffff00, 0x000000, false, 1);
+                if (baseMat) this.mesh.traverse(c => { if (c.isMesh) c.material = baseMat; });
             }
         }
 
@@ -593,7 +584,10 @@ export class HeavyTankEnemy extends Enemy {
         const startPos = this.mesh.position.clone();
         const laser = new EnemyLaser(this.scene, startPos, angle);
         laser.mesh.scale.multiplyScalar(2); // Double the base (now smaller) size
-        laser.mesh.material.color.setHex(0xff0000); // Red laser
+        const mat = getSharedMaterial(models['laser_inimigo'], 0xff0000, null, false, 1);
+        if (mat) {
+            laser.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
+        }
         laser.isHeavy = true;
         enemyLasers.push(laser);
         this.currentCooldown = this.shootCooldown;
@@ -656,13 +650,10 @@ export class DashBoss extends Enemy {
         super(scene, x, y, 'boss', 12, hp, 1000, 'cone'); // Cylinder(6) -> max dim 12
 
         // Give it a distinct tint so it doesn't look identical to the regular boss
-        this.mesh.traverse((child) => {
-            if (child.isMesh) {
-                child.material = child.material.clone();
-                child.material.color.setHex(0x00ff00);
-                child.material.emissive = new THREE.Color(0x000000);
-            }
-        });
+        const mat = getSharedMaterial(models['boss'], 0x00ff00, 0x000000, false, 1);
+        if (mat) {
+            this.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
+        }
 
         this.speed = 0.05;
         this.dashSpeed = 1.5;
@@ -697,7 +688,8 @@ export class DashBoss extends Enemy {
             if (this.stateTimer <= 0) {
                 this.state = 'TELEGRAPH';
                 this.stateTimer = 60; // 1 second telegraph
-                this.mesh.traverse(child => { if (child.isMesh) child.material.emissive.setHex(0x00ff00); });
+                const telMat = getSharedMaterial(models['boss'], 0x00ff00, 0x00ff00, false, 1);
+                if (telMat) this.mesh.traverse(c => { if (c.isMesh) c.material = telMat; });
             }
         }
         else if (this.state === 'TELEGRAPH') {
@@ -708,7 +700,8 @@ export class DashBoss extends Enemy {
             if (this.stateTimer <= 0) {
                 this.state = 'DASHING';
                 this.stateTimer = 100; // max dash time
-                this.mesh.traverse(child => { if (child.isMesh) child.material.emissiveIntensity = 1; });
+                const dashMat = getSharedMaterial(models['boss'], 0x00ff00, 0x00ff00, false, 1);
+                if (dashMat) this.mesh.traverse(c => { if (c.isMesh) c.material = dashMat; });
 
                 // Calculate dash vector directly at player
                 const dx = player.mesh.position.x - this.mesh.position.x;
@@ -733,7 +726,8 @@ export class DashBoss extends Enemy {
                 this.state = 'RECOVERING';
                 this.stateTimer = 120; // 2 seconds to recover
                 this.velocity.set(0, 0, 0);
-                this.mesh.traverse(child => { if (child.isMesh) child.material.emissiveIntensity = 0; });
+                const recMat = getSharedMaterial(models['boss'], 0x00ff00, 0x000000, false, 1);
+                if (recMat) this.mesh.traverse(c => { if (c.isMesh) c.material = recMat; });
                 this.mesh.rotation.set(0, 0, 0); // Reset rotation
             }
         }
@@ -801,16 +795,14 @@ export class PowerUp {
         const sourceModel = models[modelKey];
         if (sourceModel) {
             this.mesh = sourceModel.clone();
-            this.mesh.traverse((child) => {
-                if (child.isMesh) {
-                    // Make them semi-transparent and emissive
-                    child.material = child.material.clone();
-                    child.material.transparent = true;
-                    child.material.opacity = 0.8;
-                    child.material.emissive = new THREE.Color(color);
-                    child.material.emissiveIntensity = 0.5;
-                }
-            });
+            const mat = getSharedMaterial(sourceModel, color, color, true, 0.8);
+            if (mat) {
+                this.mesh.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material = mat;
+                    }
+                });
+            }
             fitModelToTargetSize(this.mesh, 2);
         } else {
             const geo = new THREE.OctahedronGeometry(1);
