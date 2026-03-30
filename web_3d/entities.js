@@ -75,6 +75,19 @@ export class Player {
 
         this.scene.add(this.mesh);
 
+        // Shield Mesh
+        const shieldGeo = new THREE.SphereGeometry(2.5, 32, 32);
+        const shieldMat = new THREE.MeshBasicMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+            wireframe: true
+        });
+        this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+        this.shieldMesh.visible = false;
+        this.scene.add(this.shieldMesh);
+
         // Physics
         this.velocity = new THREE.Vector3();
         this.acceleration = 0.05;
@@ -85,6 +98,7 @@ export class Player {
 
         // Powerup states
         this.shieldActive = false;
+        this.shieldTimer = 0;
         this.tripleShotTimer = 0;
         this.speedBoostTimer = 0;
         this.spreadShotTimer = 0;
@@ -98,7 +112,7 @@ export class Player {
 
         this.maxHealth = 100;
         this.health = this.maxHealth;
-        this.magnetRadius = 4.0;
+        this.magnetRadius = 6.0;
 
         this.score = 0;
 
@@ -116,6 +130,25 @@ export class Player {
         if (this.speedBoostTimer > 0) this.speedBoostTimer--;
         if (this.spreadShotTimer > 0) this.spreadShotTimer--;
         if (this.homingMissilesTimer > 0) this.homingMissilesTimer--;
+
+        if (this.shieldTimer > 0) {
+            this.shieldTimer--;
+            this.shieldActive = true;
+        } else {
+            this.shieldActive = false;
+        }
+
+        // Shield visual logic
+        if (this.shieldActive) {
+            this.shieldMesh.visible = true;
+            this.shieldMesh.position.copy(this.mesh.position);
+            this.shieldMesh.rotation.y += 0.02;
+            this.shieldMesh.rotation.x += 0.02;
+            const s = 1.0 + Math.sin(Date.now() * 0.005) * 0.05;
+            this.shieldMesh.scale.set(s, s, s);
+        } else {
+            this.shieldMesh.visible = false;
+        }
 
         if (this.isOverheated) {
             // Must wait for it to fully cool down
@@ -231,7 +264,7 @@ export class Player {
                     this.scene.add(l.mesh);
                     fitModelToTargetSize(l.mesh, 4); // Huge plasma shot
 
-                    const mat = getSharedMaterial(models['plasma'], 0x00ffff, null, false, 1);
+                    const mat = getSharedMaterial(models['plasma'], 0x00ffff, 0x00ffff, false, 1);
                     if (mat) {
                         l.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
                     }
@@ -261,6 +294,7 @@ export class Player {
         this.health = this.maxHealth || 100;
         this.score = 0;
         this.shieldActive = false;
+        this.shieldTimer = 0;
         this.tripleShotTimer = 0;
         this.speedBoostTimer = 0;
         this.spreadShotTimer = 0;
@@ -306,6 +340,8 @@ export class Laser {
         const sourceModel = models['laser_player'];
         if (sourceModel) {
             this.mesh = sourceModel.clone();
+            const mat = getSharedMaterial(sourceModel, 0x00ffff, 0x00ffff);
+            if (mat) this.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
             fitModelToTargetSize(this.mesh, 1); // target dimension 1 length
         } else {
             const geo = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
@@ -356,7 +392,7 @@ export class LaserPool {
             laser.active = true;
             laser.isPlasma = false;
             laser.isHoming = false;
-            laser.mesh.scale.set(1, 1, 1);
+            fitModelToTargetSize(laser.mesh, 1);
         } else {
             laser = new Laser(this.scene, startPosition, dirX);
         }
@@ -364,6 +400,10 @@ export class LaserPool {
     }
 
     release(laser) {
+        if (laser.isPlasma || laser.isHoming) {
+            laser.destroy();
+            return;
+        }
         laser.mesh.visible = false;
         laser.active = false;
         if (this.pool.length < this.poolSize) {
@@ -500,7 +540,7 @@ export class EnemyLaser {
         if (sourceModel) {
             this.mesh = sourceModel.clone();
             // Default color red if no shared mat, but main.js might override
-            const mat = getSharedMaterial(sourceModel, 0xff00ff); // Purple laser
+            const mat = getSharedMaterial(sourceModel, 0xff00ff, 0xff00ff); // Purple laser
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
                     child.material = mat;
@@ -630,7 +670,7 @@ export class HeavyTankEnemy extends Enemy {
         const startPos = this.mesh.position.clone();
         const laser = new EnemyLaser(this.scene, startPos, angle);
         laser.mesh.scale.multiplyScalar(2); // Double the base (now smaller) size
-        const mat = getSharedMaterial(models['laser_inimigo'], 0xff0000, null, false, 1);
+        const mat = getSharedMaterial(models['laser_inimigo'], 0xff0000, 0xff0000, false, 1);
         if (mat) {
             laser.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
         }
@@ -681,7 +721,8 @@ export class BossEnemy extends Enemy {
         for (let angle of angles) {
             const laser = new EnemyLaser(this.scene, startPos, angle);
             laser.mesh.scale.multiplyScalar(1.5);
-            laser.mesh.material.color.setHex(0xff8800); // Orange boss laser
+            const mat = getSharedMaterial(models['laser_inimigo'], 0xff8800, 0xff8800);
+            if (mat) laser.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
             laser.isHeavy = true;
             enemyLasers.push(laser);
         }
@@ -723,7 +764,8 @@ export class DashBoss extends Enemy {
             // Shoot regular lasers
             if (Math.random() < 0.05) {
                 const laser = new EnemyLaser(this.scene, this.mesh.position.clone(), 0);
-                laser.mesh.material.color.setHex(0x00ff00);
+                const mat = getSharedMaterial(models['laser_inimigo'], 0x00ff00, 0x00ff00);
+                if (mat) laser.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
                 laser.speed = 0.8; // Faster lasers
                 laser.velZ = laser.speed;
                 laser.isHeavy = true;
@@ -870,15 +912,29 @@ export class PowerUp {
         this.baseScale = this.mesh.scale.clone();
     }
 
-    update() {
+    update(player) {
         this.lifeTime--;
         if (this.lifeTime <= 0) this.active = false;
 
-        // Restore drift towards the player (+Z axis)
-        this.mesh.position.z += 0.08;
+        if (player && player.mesh) {
+            const dx = player.mesh.position.x - this.mesh.position.x;
+            const dz = player.mesh.position.z - this.mesh.position.z;
+            const distSq = dx * dx + dz * dz;
+            const pullRadius = (player.magnetRadius || 6.0) * 2.5;
 
-        // Giro também removido
-        // Pulsação/balanço removido conforme pedido
+            if (distSq < pullRadius * pullRadius && distSq > 0) {
+                // Fly rapidly towards player
+                const dist = Math.sqrt(distSq);
+                const speed = 0.8; 
+                this.mesh.position.x += (dx / dist) * speed;
+                this.mesh.position.z += (dz / dist) * speed;
+            } else {
+                // Normal drift
+                this.mesh.position.z += 0.08;
+            }
+        } else {
+            this.mesh.position.z += 0.08;
+        }
     }
 
     destroy() {

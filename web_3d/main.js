@@ -502,7 +502,7 @@ function animate() {
         // Update Powerups
         for (let i = powerups.length - 1; i >= 0; i--) {
             const p = powerups[i];
-            p.update();
+            p.update(player);
 
             if (checkCollision(player.mesh, p.mesh, player.magnetRadius || 3.5)) {
                 let text = "";
@@ -510,8 +510,9 @@ function animate() {
                     player.health = Math.min(player.maxHealth || 100, player.health + 20);
                     text = "+ HEALTH";
                 } else if (p.type === 'shield') {
+                    player.shieldTimer = 300;
                     player.shieldActive = true;
-                    text = "SHIELD ACTIVE";
+                    text = "INVINCIBLE: 5s";
                 } else if (p.type === 'plasma_shot') {
                     player.tripleShotTimer = 800;
                     player.spreadShotTimer = 0;
@@ -562,7 +563,7 @@ function animate() {
             if (el.active && !player.isDashing && checkCollision(player.mesh, el.mesh, 1.5)) {
                 el.active = false;
                 if (player.shieldActive) {
-                    player.shieldActive = false;
+                    explosionManager.createHitSpark(player.mesh.position, 0x00aaff, 5);
                 } else {
                     player.health -= (el.isHeavy ? 20 : 10);
                     shakeDuration = 10;
@@ -612,7 +613,10 @@ function animate() {
             if (!player.isDashing && checkCollision(player.mesh, e.mesh, e.size ? e.size : 2.5)) {
                 e.active = false;
                 if (player.shieldActive) {
-                    player.shieldActive = false;
+                    player.score += e.scoreValue || 10;
+                    scoreVal.innerText = player.score;
+                    explosionManager.createExplosion(e.mesh.position, 0x00aaff);
+                    playSound(sounds.explosion);
                 } else {
                     player.health -= 20;
                     shakeDuration = 20;
@@ -692,7 +696,8 @@ function animate() {
             // Collision with Player
             if (!player.isDashing && checkCollision(player.mesh, obs.mesh, obs.size + 1.0)) {
                 if (player.shieldActive) {
-                    player.shieldActive = false;
+                    player.velocity.z += 0.8;
+                    explosionManager.createHitSpark(player.mesh.position, 0x00aaff, 8);
                 } else {
                     player.health -= 50; // Heavy damage from asteroid
                     shakeDuration = 20;

@@ -138,28 +138,40 @@ export function loadAssets(onLoadCallback) {
     generateHomingExplosionBuffer();
     generateSpeedsterShootBuffer();
 
+    function fixMaterials(gltf) {
+        gltf.scene.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (child.material.isMeshStandardMaterial) {
+                    child.material.metalness = 0.1;
+                    child.material.roughness = 0.8;
+                }
+            }
+        });
+        return gltf.scene;
+    }
+
     // Load Models - Enemies
-    gltfLoader.load('assets/inimigos/atirador.glb', (gltf) => models.atirador = gltf.scene);
-    gltfLoader.load('assets/inimigos/basico.glb', (gltf) => models.basico = gltf.scene);
-    gltfLoader.load('assets/inimigos/boss.glb', (gltf) => models.boss = gltf.scene);
-    gltfLoader.load('assets/inimigos/meteoro.glb', (gltf) => models.meteoro = gltf.scene);
-    gltfLoader.load('assets/inimigos/tanque.glb', (gltf) => models.tanque = gltf.scene);
+    gltfLoader.load('assets/inimigos/atirador.glb', (gltf) => models.atirador = fixMaterials(gltf));
+    gltfLoader.load('assets/inimigos/basico.glb', (gltf) => models.basico = fixMaterials(gltf));
+    gltfLoader.load('assets/inimigos/boss.glb', (gltf) => models.boss = fixMaterials(gltf));
+    gltfLoader.load('assets/inimigos/meteoro.glb', (gltf) => models.meteoro = fixMaterials(gltf));
+    gltfLoader.load('assets/inimigos/tanque.glb', (gltf) => models.tanque = fixMaterials(gltf));
 
     // Load Models - Ships
-    gltfLoader.load('assets/naves/nave_basica.glb', (gltf) => models.nave_basica = gltf.scene);
-    gltfLoader.load('assets/naves/nave_velocista.glb', (gltf) => models.nave_velocista = gltf.scene);
-    gltfLoader.load('assets/naves/nave_pesada.glb', (gltf) => models.nave_pesada = gltf.scene);
+    gltfLoader.load('assets/naves/nave_basica.glb', (gltf) => models.nave_basica = fixMaterials(gltf));
+    gltfLoader.load('assets/naves/nave_velocista.glb', (gltf) => models.nave_velocista = fixMaterials(gltf));
+    gltfLoader.load('assets/naves/nave_pesada.glb', (gltf) => models.nave_pesada = fixMaterials(gltf));
 
     // Load Models - Powerups
-    gltfLoader.load('assets/power_ups/power_up_escudo.glb', (gltf) => models.pu_escudo = gltf.scene);
-    gltfLoader.load('assets/power_ups/power_up_plasma.glb', (gltf) => models.pu_plasma = gltf.scene);
-    gltfLoader.load('assets/power_ups/power_up_tiro_multiplo.glb', (gltf) => models.pu_tiro_multiplo = gltf.scene);
-    gltfLoader.load('assets/power_ups/power_up_tiro_rapido.glb', (gltf) => models.pu_tiro_rapido = gltf.scene);
-    gltfLoader.load('assets/power_ups/power_up_tiro_teleguiado.glb', (gltf) => models.pu_tiro_teleguiado = gltf.scene);
-    gltfLoader.load('assets/power_ups/power_up_vida.glb', (gltf) => models.pu_vida = gltf.scene);
+    gltfLoader.load('assets/power_ups/power_up_escudo.glb', (gltf) => models.pu_escudo = fixMaterials(gltf));
+    gltfLoader.load('assets/power_ups/power_up_plasma.glb', (gltf) => models.pu_plasma = fixMaterials(gltf));
+    gltfLoader.load('assets/power_ups/power_up_tiro_multiplo.glb', (gltf) => models.pu_tiro_multiplo = fixMaterials(gltf));
+    gltfLoader.load('assets/power_ups/power_up_tiro_rapido.glb', (gltf) => models.pu_tiro_rapido = fixMaterials(gltf));
+    gltfLoader.load('assets/power_ups/power_up_tiro_teleguiado.glb', (gltf) => models.pu_tiro_teleguiado = fixMaterials(gltf));
+    gltfLoader.load('assets/power_ups/power_up_vida.glb', (gltf) => models.pu_vida = fixMaterials(gltf));
 
     // Load Models - Shots
-    gltfLoader.load('assets/tiros/laser_beam_inimigos.glb', (gltf) => models.laser_inimigo = gltf.scene);
-    gltfLoader.load('assets/tiros/laser_beam_player.glb', (gltf) => models.laser_player = gltf.scene);
-    gltfLoader.load('assets/tiros/plasma.glb', (gltf) => models.plasma = gltf.scene);
+    gltfLoader.load('assets/tiros/laser_beam_inimigos.glb', (gltf) => models.laser_inimigo = fixMaterials(gltf));
+    gltfLoader.load('assets/tiros/laser_beam_player.glb', (gltf) => models.laser_player = fixMaterials(gltf));
+    gltfLoader.load('assets/tiros/plasma.glb', (gltf) => models.plasma = fixMaterials(gltf));
 }

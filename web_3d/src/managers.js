@@ -125,8 +125,12 @@ export class WaveManager {
     }
 
     spawnObstacle(obstacles) {
-        // More obstacles on later waves
-        const count = Math.floor(Math.random() * (1 + this.currentWave / 5)) + 1;
+        // Cap obstacles to max 4 at a time
+        if (obstacles.length >= 4) return;
+
+        // More obstacles on later waves, but don't exceed the cap of 4
+        let count = Math.floor(Math.random() * (1 + this.currentWave / 5)) + 1;
+        count = Math.min(count, 4 - obstacles.length);
 
         for (let i = 0; i < count; i++) {
             const x = (Math.random() - 0.5) * 40;

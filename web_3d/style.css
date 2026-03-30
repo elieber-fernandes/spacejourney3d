@@ -627,3 +627,64 @@ canvas {
     transform: translate(-50%, -150%) scale(1);
   }
 }
+
+/* Hangar Container */
+#hangar-container {
+  margin-top: 20px;
+}
+
+.hangar-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+#ship-preview {
+  width: 150px;
+  height: 150px;
+  background: rgba(0, 255, 204, 0.1);
+  border: 2px solid #00ffcc;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ship-controls-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ship-nav-btn {
+  display: inline-block;
+  width: auto;
+}
+
+#ship-info {
+  display: inline-block;
+  margin: 0 15px;
+  text-align: center;
+  min-width: 150px;
+}
+
+#ship-name {
+  margin: 0;
+  color: #00ffcc;
+}
+
+#ship-status {
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
+#buy-ship-btn {
+  margin-top: 10px;
+  display: none;
+}
+
+.pause-menu-btn {
+  margin: 10px;
+  font-size: 1.5rem;
+  text-align: center;
+}
