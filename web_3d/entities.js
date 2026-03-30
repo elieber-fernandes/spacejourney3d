@@ -2,6 +2,10 @@ import * as THREE from 'three';
 
 import { models } from './src/assets.js';
 
+// Pre-allocated objects for fitModelToTargetSize to avoid GC pressure
+const _fitBox = new THREE.Box3();
+const _fitSize = new THREE.Vector3();
+
 export function fitModelToTargetSize(model, targetSize) {
     if (!model) return;
     // Reset scale first
@@ -10,11 +14,10 @@ export function fitModelToTargetSize(model, targetSize) {
     // Ensure world matrices are updated so Box3 calculates correctly
     model.updateMatrixWorld(true);
 
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    box.getSize(size);
+    _fitBox.setFromObject(model);
+    _fitBox.getSize(_fitSize);
 
-    const maxDim = Math.max(size.x, size.y, size.z);
+    const maxDim = Math.max(_fitSize.x, _fitSize.y, _fitSize.z);
     if (maxDim > 0) {
         const scale = targetSize / maxDim;
         model.scale.setScalar(scale);
@@ -53,10 +56,10 @@ export class Player {
         if (sourceModel) {
             this.mesh = sourceModel.clone();
 
-            // Re-apply shadow casting and specific materials if needed
+            // Re-apply specific materials if needed
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
-                    child.castShadow = true;
+                    child.castShadow = false;
                 }
             });
 
@@ -67,7 +70,7 @@ export class Player {
             geo.rotateX(-Math.PI / 2);
             const mat = new THREE.MeshStandardMaterial({ color: 0x00ffff });
             this.mesh = new THREE.Mesh(geo, mat);
-            this.mesh.castShadow = true;
+            this.mesh.castShadow = false;
         }
 
         this.scene.add(this.mesh);
@@ -201,23 +204,23 @@ export class Player {
         const now = Date.now();
         if (now - this.lastShot > this.shootDelay) {
             if (this.homingMissilesTimer > 0) {
-                // Fire two homing missiles
+                // Fire two homing missiles (not pooled - special behavior)
                 const l1 = new HomingMissile(this.scene, this.mesh.position.clone());
                 l1.mesh.position.x -= 1;
                 const l2 = new HomingMissile(this.scene, this.mesh.position.clone());
                 l2.mesh.position.x += 1;
                 lasers.push(l1, l2);
             } else if (this.spreadShotTimer > 0) {
-                // 5-way arc
+                // 5-way arc (pooled)
                 const spreadAngles = [-0.4, -0.2, 0, 0.2, 0.4];
                 for (let a of spreadAngles) {
-                    const l = new Laser(this.scene, this.mesh.position.clone(), a);
+                    const l = this.laserPool ? this.laserPool.acquire(this.mesh.position, a) : new Laser(this.scene, this.mesh.position.clone(), a);
                     // Modify rotation of laser to match direction visually
                     l.mesh.rotation.y = -a;
                     lasers.push(l);
                 }
             } else if (this.tripleShotTimer > 0) {
-                // Plasma shot: massive, slow moving, piercing laser
+                // Plasma shot: massive, slow moving, piercing laser (not pooled - swaps mesh)
                 const l = new Laser(this.scene, this.mesh.position.clone(), 0);
 
                 // Swap the mesh for the actual plasma model
@@ -240,7 +243,9 @@ export class Player {
                 l.isPlasma = true; // Special flag we'll use in main.js
                 lasers.push(l);
             } else {
-                lasers.push(new Laser(this.scene, this.mesh.position.clone(), 0));
+                // Normal shot (pooled)
+                const l = this.laserPool ? this.laserPool.acquire(this.mesh.position, 0) : new Laser(this.scene, this.mesh.position.clone(), 0);
+                lasers.push(l);
             }
 
             this.lastShot = now;
@@ -276,7 +281,7 @@ export class Player {
             this.mesh = sourceModel.clone();
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
-                    child.castShadow = true;
+                    child.castShadow = false;
                 }
             });
             fitModelToTargetSize(this.mesh, targetSize);
@@ -286,7 +291,7 @@ export class Player {
             geo.rotateX(-Math.PI / 2);
             const mat = getSharedMaterial(null, 0x00ffff); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
-            this.mesh.castShadow = true;
+            this.mesh.castShadow = false;
         }
 
         this.scene.add(this.mesh);
@@ -328,8 +333,44 @@ export class Laser {
 
     destroy() {
         this.scene.remove(this.mesh);
-        // We do NOT dispose geometries or materials here anymore because they are either
-        // shared from GLTF loading or pooled via getSharedMaterial.
+    }
+}
+
+// --- LASER POOL ---
+export class LaserPool {
+    constructor(scene, poolSize = 60) {
+        this.scene = scene;
+        this.pool = [];
+        this.poolSize = poolSize;
+    }
+
+    acquire(startPosition, dirX = 0) {
+        let laser;
+        if (this.pool.length > 0) {
+            laser = this.pool.pop();
+            laser.mesh.visible = true;
+            laser.mesh.position.copy(startPosition);
+            laser.mesh.position.z -= 1.5;
+            laser.speedZ = 1.0;
+            laser.speedX = dirX;
+            laser.active = true;
+            laser.isPlasma = false;
+            laser.isHoming = false;
+            laser.mesh.scale.set(1, 1, 1);
+        } else {
+            laser = new Laser(this.scene, startPosition, dirX);
+        }
+        return laser;
+    }
+
+    release(laser) {
+        laser.mesh.visible = false;
+        laser.active = false;
+        if (this.pool.length < this.poolSize) {
+            this.pool.push(laser);
+        } else {
+            laser.destroy();
+        }
     }
 }
 
@@ -342,7 +383,7 @@ export class Enemy {
             this.mesh = sourceModel.clone();
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
-                    child.castShadow = true;
+                    child.castShadow = false;
                 }
             });
             fitModelToTargetSize(this.mesh, size);
@@ -355,7 +396,7 @@ export class Enemy {
 
             const mat = getSharedMaterial(null, 0xff0000, 0x000000, false, 1); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
-            this.mesh.castShadow = true;
+            this.mesh.castShadow = false;
         }
 
         this.mesh.position.set(x, 0, y);
@@ -509,6 +550,12 @@ export class KamikazeEnemy extends Enemy {
         if (mat) {
             this.mesh.traverse(c => { if (c.isMesh) c.material = mat; });
         }
+
+        // Cache mesh children to avoid traverse() every frame
+        this._meshChildren = [];
+        this.mesh.traverse(c => { if (c.isMesh) this._meshChildren.push(c); });
+        this._baseMat = getSharedMaterial(models['basico'], 0xffff00, 0x000000, false, 1);
+        this._alertMat = getSharedMaterial(models['basico'], 0xff0000, 0xff0000, false, 1);
     }
 
     update(player) {
@@ -528,16 +575,15 @@ export class KamikazeEnemy extends Enemy {
 
         this.mesh.position.add(this.velocity);
 
-        // Blinking effect based on distance
+        // Blinking effect based on distance (using cached refs)
         if (dist < 20) {
-            // Blink faster as it gets closer
             const blinkSpeed = Math.max(0.05, dist * 0.01);
-            if (Date.now() % (blinkSpeed * 1000) < (blinkSpeed * 500)) {
-                const alertMat = getSharedMaterial(models['basico'], 0xff0000, 0xff0000, false, 1);
-                if (alertMat) this.mesh.traverse(c => { if (c.isMesh) c.material = alertMat; });
-            } else {
-                const baseMat = getSharedMaterial(models['basico'], 0xffff00, 0x000000, false, 1);
-                if (baseMat) this.mesh.traverse(c => { if (c.isMesh) c.material = baseMat; });
+            const useAlert = Date.now() % (blinkSpeed * 1000) < (blinkSpeed * 500);
+            const mat = useAlert ? this._alertMat : this._baseMat;
+            if (mat) {
+                for (let i = 0; i < this._meshChildren.length; i++) {
+                    this._meshChildren[i].material = mat;
+                }
             }
         }
 
@@ -856,6 +902,7 @@ export class HomingMissile extends Laser {
             if (child.isMesh) {
                 child.material = child.material.clone();
                 child.material.color.setHex(0xffaa00);
+                child.castShadow = false;
             }
         });
         fitModelToTargetSize(this.mesh, 1.5); // ConGeometry(0.3, 1.5) -> max 1.5
@@ -923,7 +970,7 @@ export class Obstacle {
 
         this.mesh = new THREE.Mesh(geo, mat);
         this.mesh.position.set(x, 0, y);
-        this.mesh.castShadow = true;
+        this.mesh.castShadow = false;
         this.scene.add(this.mesh);
 
         this.velZ = 0.15 + Math.random() * 0.1;

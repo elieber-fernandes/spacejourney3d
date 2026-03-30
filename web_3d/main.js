@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Player, Laser, PowerUp, fitModelToTargetSize } from './entities.js';
+import { Player, Laser, LaserPool, PowerUp, fitModelToTargetSize } from './entities.js';
 import { loadAssets, loadingManager, sounds, models } from './src/assets.js';
 import { WaveManager } from './src/managers.js';
 import { ExplosionManager, EngineTrail } from './src/effects.js';
@@ -90,6 +90,7 @@ const floatingTextContainer = document.getElementById('floating-text-container')
 const shipPreviewContainer = document.getElementById('ship-preview');
 
 let viewingShipIndex = currentShipIndex;
+let hangarVisible = false; // Cached flag to avoid getComputedStyle in game loop
 
 // --- PREVIEW SCENE SETUP ---
 const previewScene = new THREE.Scene();
@@ -117,6 +118,13 @@ export { previewScene, currentPreviewMesh };
 const bgListener = new THREE.AudioListener();
 const bgMusic = new THREE.Audio(bgListener);
 
+// Audio pool: reuse a fixed set of Audio objects instead of creating new ones
+const AUDIO_POOL_SIZE = 16;
+const audioPool = [];
+for (let i = 0; i < AUDIO_POOL_SIZE; i++) {
+    audioPool.push(new THREE.Audio(bgListener));
+}
+
 function playBgMusic() {
     if (sounds.bgMusic && !bgMusic.isPlaying) {
         bgMusic.setBuffer(sounds.bgMusic);
@@ -128,17 +136,11 @@ function playBgMusic() {
 
 function playSound(audioBuffer, volume = 0.5) {
     if (!audioBuffer) return;
-    const listener = new THREE.AudioListener();
-    camera.add(listener);
-    const audio = new THREE.Audio(listener);
+    const audio = audioPool.find(a => !a.isPlaying);
+    if (!audio) return; // All slots busy, skip this sound
     audio.setBuffer(audioBuffer);
     audio.setVolume(volume);
     audio.play();
-
-    // Clean up listener context eventually
-    audio.onEnded = function () {
-        camera.remove(listener);
-    }
 }
 
 // --- THREE.JS SETUP ---
@@ -153,9 +155,8 @@ camera.add(bgListener);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x to avoid 4K perf issues
+renderer.shadowMap.enabled = false; // Shadows add little value in top-down space game
 document.body.appendChild(renderer.domElement);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
@@ -163,12 +164,11 @@ scene.add(ambientLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1);
 dirLight.position.set(10, 20, 10);
-dirLight.castShadow = true;
 scene.add(dirLight);
 
-// Starfield
-const starGeo = new THREE.BufferGeometry();
+// Starfield — GPU-driven via shader (no CPU update per frame)
 const starCount = 3000;
+const starGeo = new THREE.BufferGeometry();
 const starPos = new Float32Array(starCount * 3);
 for (let i = 0; i < starCount * 3; i += 3) {
     starPos[i] = (Math.random() - 0.5) * 200; // x
@@ -176,13 +176,34 @@ for (let i = 0; i < starCount * 3; i += 3) {
     starPos[i + 2] = (Math.random() - 0.5) * 200; // z
 }
 starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+
+const starUniforms = { uTime: { value: 0 } };
+const starMat = new THREE.ShaderMaterial({
+    uniforms: starUniforms,
+    vertexShader: `
+        uniform float uTime;
+        void main() {
+            vec3 pos = position;
+            pos.z = mod(pos.z + uTime * 30.0 + 100.0, 200.0) - 100.0;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = 1.5;
+        }
+    `,
+    fragmentShader: `
+        void main() {
+            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }
+    `,
+    transparent: true
+});
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // --- ENTITIES & MANAGERS ---
 // Initially spawn player with their currently equipped ship
 const player = new Player(scene, SHIPS[currentShipIndex].modelKey, SHIPS[currentShipIndex].targetSize);
+const laserPool = new LaserPool(scene, 80); // Pool up to 80 laser meshes
+player.laserPool = laserPool; // Player will use pool for shooting
 let lasers = [];
 let enemyLasers = [];
 let enemies = [];
@@ -367,19 +388,20 @@ quitBtn.addEventListener('click', () => {
 // --- HELPER FUNC ---
 function checkCollision(obj1, obj2, threshold = 2.0) {
     if (!obj1 || !obj2) return false;
-    return obj1.position.distanceTo(obj2.position) < threshold;
+    return obj1.position.distanceToSquared(obj2.position) < threshold * threshold;
 }
 
 // --- FLOATING TEXT ---
+const _floatVec = new THREE.Vector3(); // Reusable vector for projection
 function showFloatingText(text, colorHex, position3D) {
     if (!floatingTextContainer) return;
 
-    // Convert 3D position to 2D screen coordinates
-    const vector = position3D.clone();
-    vector.project(camera);
+    // Convert 3D position to 2D screen coordinates (reuse vector)
+    _floatVec.copy(position3D);
+    _floatVec.project(camera);
 
-    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-    const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
+    const x = (_floatVec.x * 0.5 + 0.5) * window.innerWidth;
+    const y = -(_floatVec.y * 0.5 - 0.5) * window.innerHeight;
 
     // Create element
     const el = document.createElement('div');
@@ -414,7 +436,7 @@ function animate() {
         if (currentPreviewMesh) {
             currentPreviewMesh.rotation.y += 0.01;
         }
-        if (shipPreviewContainer && window.getComputedStyle(shipPreviewContainer.closest('#hangar-container')).display !== 'none') {
+        if (hangarVisible) {
             previewRenderer.render(previewScene, previewCamera);
         }
     }
@@ -429,15 +451,8 @@ function animate() {
             camera.position.set(0, 15, 20);
         }
 
-        // Update Starfield
-        const positions = stars.geometry.attributes.position.array;
-        for (let i = 2; i < starCount * 3; i += 3) {
-            positions[i] += 0.5; // move stars towards camera (z-axis)
-            if (positions[i] > 50) {
-                positions[i] -= 200; // reset back
-            }
-        }
-        stars.geometry.attributes.position.needsUpdate = true;
+        // Update Starfield (GPU-driven, just update time uniform)
+        starUniforms.uTime.value += 0.016;
 
         // Wave logic & managers
         const prevWaveState = waveManager.state;
@@ -534,7 +549,7 @@ function animate() {
             const l = lasers[i];
             l.update();
             if (!l.active) {
-                l.destroy();
+                laserPool.release(l);
                 lasers.splice(i, 1);
             }
         }
@@ -894,6 +909,7 @@ startBtn.addEventListener('click', () => {
 
     gameState = 'PLAYING';
     startScreen.classList.add('hidden');
+    hangarVisible = false;
     hud.classList.remove('hidden');
 
     if (isTouchDevice) {
@@ -917,7 +933,7 @@ startBtn.addEventListener('click', () => {
     player.reset();
     healthVal.innerText = player.health;
     scoreVal.innerText = player.score;
-    lasers.forEach(l => l.destroy());
+    lasers.forEach(l => laserPool.release(l));
     lasers = [];
     enemyLasers.forEach(el => el.destroy());
     enemyLasers = [];
@@ -952,6 +968,7 @@ loadAssets(() => {
 
     if (hangarContainer) {
         hangarContainer.classList.remove('hidden');
+        hangarVisible = true;
         updateHangarUI();
     }
 
