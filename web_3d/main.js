@@ -33,7 +33,7 @@ function saveProgression() {
 // --- SHIPS DEFINITION ---
 const SHIPS = [
     {
-        name: "Nave Básica",
+        name: "Basic Ship",
         cost: 0,
         color: 0x00ffff,
         modelKey: 'nave_basica',
@@ -41,7 +41,7 @@ const SHIPS = [
         stats: { hpBase: 100, speedBase: 0.6, coolingBase: 0.5, heatCostMult: 1.0 }
     },
     {
-        name: "Velocista",
+        name: "Speedster",
         cost: 5000,
         color: 0xffff00,
         modelKey: 'nave_velocista',
@@ -49,7 +49,7 @@ const SHIPS = [
         stats: { hpBase: 70, speedBase: 0.8, coolingBase: 0.6, heatCostMult: 0.8 } // Faster, better cooling, less heat cost, but fragile
     },
     {
-        name: "Cruzador Pesado",
+        name: "Heavy Cruiser",
         cost: 10000,
         color: 0xff0000,
         modelKey: 'nave_pesada',
@@ -464,11 +464,11 @@ function animate() {
         if (waveManager.state === 'SPAWNING' && prevWaveState === 'WAVE_START') {
             waveBanner.classList.remove('hidden');
             if (waveManager.currentWave % 5 === 0) {
-                waveVal.innerText = `ONDA CHEFE ${waveManager.currentWave}`;
+                waveVal.innerText = `BOSS WAVE ${waveManager.currentWave}`;
                 waveVal.style.color = '#ff5500';
                 playSound(sounds.siren, 0.8);
             } else {
-                waveVal.innerText = `ONDA ${waveManager.currentWave}`;
+                waveVal.innerText = `WAVE ${waveManager.currentWave}`;
                 waveVal.style.color = '#00ffff';
             }
             setTimeout(() => { waveBanner.classList.add('hidden'); }, 2000);
@@ -508,25 +508,25 @@ function animate() {
                 let text = "";
                 if (p.type === 'health') {
                     player.health = Math.min(player.maxHealth || 100, player.health + 20);
-                    text = "+ VIDA";
+                    text = "+ HEALTH";
                 } else if (p.type === 'shield') {
                     player.shieldActive = true;
-                    text = "ESCUDO ATIVO";
+                    text = "SHIELD ACTIVE";
                 } else if (p.type === 'plasma_shot') {
                     player.tripleShotTimer = 800;
                     player.spreadShotTimer = 0;
                     player.speedBoostTimer = 0;
-                    text = "CANHÃO DE PLASMA";
+                    text = "PLASMA CANNON";
                 } else if (p.type === 'spread_shot') {
                     player.spreadShotTimer = 800;
                     player.tripleShotTimer = 0;
                     player.speedBoostTimer = 0;
-                    text = "TIRO MÚLTIPLO";
+                    text = "SPREAD SHOT";
                 } else if (p.type === 'rapid_fire') {
                     player.speedBoostTimer = 600; // Reuse speed boost timer internally for rapid fire
                     player.spreadShotTimer = 0;
                     player.tripleShotTimer = 0;
-                    text = "TIRO RÁPIDO";
+                    text = "RAPID FIRE";
                 }
 
                 healthVal.innerText = player.health;
@@ -584,11 +584,11 @@ function animate() {
                         scrap += earnedScrap;
                         saveProgression();
 
-                        startScreen.innerHTML = `<h1>FIM DE JOGO</h1>
-                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Pontos: ${player.score}</p>
-                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NOVO RECORDE! 🌟</p>' : ''}
-                        <p style="margin-bottom: 20px; color: yellow;">Sucata Ganha: +${earnedScrap}</p>
-                        <button id="start-btn" onclick="location.reload()">Voltar à Base</button>`;
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
+                        <p style="margin-bottom: 20px; color: yellow;">Scrap Earned: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
                         if (mobileUI) mobileUI.classList.add('hidden');
@@ -634,11 +634,11 @@ function animate() {
                         scrap += earnedScrap;
                         saveProgression();
 
-                        startScreen.innerHTML = `<h1>FIM DE JOGO</h1>
-                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Pontos: ${player.score}</p>
-                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NOVO RECORDE! 🌟</p>' : ''}
-                        <p style="margin-bottom: 20px; color: yellow;">Sucata Ganha: +${earnedScrap}</p>
-                        <button id="start-btn" onclick="location.reload()">Voltar à Base</button>`;
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
+                        <p style="margin-bottom: 20px; color: yellow;">Scrap Earned: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
                         if (mobileUI) mobileUI.classList.add('hidden');
@@ -717,11 +717,11 @@ function animate() {
                         scrap += earnedScrap;
                         saveProgression();
 
-                        startScreen.innerHTML = `<h1>FIM DE JOGO</h1>
-                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Pontos: ${player.score}</p>
-                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NOVO RECORDE! 🌟</p>' : ''}
-                        <p style="margin-bottom: 20px; color: yellow;">Sucata Ganha: +${earnedScrap}</p>
-                        <button id="start-btn" onclick="location.reload()">Voltar à Base</button>`;
+                        startScreen.innerHTML = `<h1>GAME OVER</h1>
+                        <p style="margin-bottom: 20px; font-size: 1.5rem;">Score: ${player.score}</p>
+                        ${newRecord ? '<p style="color: #00ffcc; font-weight: bold; margin-bottom: 10px;">🌟 NEW HIGH SCORE! 🌟</p>' : ''}
+                        <p style="margin-bottom: 20px; color: yellow;">Scrap Earned: +${earnedScrap}</p>
+                        <button id="start-btn" onclick="location.reload()">Return to Base</button>`;
                         startScreen.classList.remove('hidden');
                         hud.classList.add('hidden');
                         if (mobileUI) mobileUI.classList.add('hidden');
@@ -832,10 +832,10 @@ function updateHangarUI() {
     if (unlockedShips.includes(viewingShipIndex)) {
         buyShipBtn.style.display = 'none';
         if (currentShipIndex === viewingShipIndex) {
-            shipStatus.innerText = "EQUIPADA";
+            shipStatus.innerText = "EQUIPPED";
             shipStatus.style.color = "#00ffcc";
         } else {
-            shipStatus.innerText = "POSSUÍDA (Clique para Equipar)";
+            shipStatus.innerText = "OWNED (Click to Equip)";
             shipStatus.style.color = "#aaaaaa";
             shipStatus.style.cursor = "pointer";
 
@@ -847,7 +847,7 @@ function updateHangarUI() {
             };
         }
     } else {
-        shipStatus.innerText = "BLOQUEADA";
+        shipStatus.innerText = "LOCKED";
         shipStatus.style.color = "#ff0000";
         shipStatus.onclick = null;
         shipStatus.style.cursor = "default";

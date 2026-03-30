@@ -21,22 +21,22 @@
     <!-- UI Container for HUD, Menus, etc., over the 3D Canvas -->
     <div id="ui-container">
       <div id="start-screen" class="screen">
-        <h1 class="glitch" data-text="JORNADA ESPACIAL">JORNADA ESPACIAL</h1>
-        <h2 id="high-score-display" class="hidden">RECORDE: <span id="high-score-val">0</span></h2>
-        <p id="loading-text">Carregando Recursos...</p>
+        <h1 class="glitch" data-text="SPACE JOURNEY">SPACE JOURNEY</h1>
+        <h2 id="high-score-display" class="hidden">HIGH SCORE: <span id="high-score-val">0</span></h2>
+        <p id="loading-text">Loading Assets...</p>
         
         <div id="shop-container" class="hidden">
-          <h3>MELHORIAS</h3>
-          <p>Sucata: <span id="scrap-val">0</span></p>
+          <h3>UPGRADES</h3>
+          <p>Scrap: <span id="scrap-val">0</span></p>
           <div class="upgrade-items">
-            <button class="upgrade-btn" id="upg-health">Vida Máx (Nvl <span id="lvl-health">0</span>) - <span id="cost-health">1000</span> Sucata</button>
-            <button class="upgrade-btn" id="upg-heat">Resfriamento (Nvl <span id="lvl-heat">0</span>) - <span id="cost-heat">1000</span> Sucata</button>
-            <button class="upgrade-btn" id="upg-magnet">Ímã (Nvl <span id="lvl-magnet">0</span>) - <span id="cost-magnet">1000</span> Sucata</button>
+            <button class="upgrade-btn" id="upg-health">Max Health (Lvl <span id="lvl-health">0</span>) - <span id="cost-health">1000</span> Scrap</button>
+            <button class="upgrade-btn" id="upg-heat">Cooling (Lvl <span id="lvl-heat">0</span>) - <span id="cost-heat">1000</span> Scrap</button>
+            <button class="upgrade-btn" id="upg-magnet">Magnet (Lvl <span id="lvl-magnet">0</span>) - <span id="cost-magnet">1000</span> Scrap</button>
           </div>
         </div>
 
         <div id="hangar-container" class="hidden" style="margin-top: 20px;">
-          <h3>HANGAR & NAVES</h3>
+          <h3>HANGAR & SHIPS</h3>
           <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
             <!-- 3D Preview Container -->
             <div id="ship-preview" style="width: 150px; height: 150px; background: rgba(0, 255, 204, 0.1); border: 2px solid #00ffcc; border-radius: 8px; overflow: hidden; position: relative;">
@@ -47,29 +47,29 @@
               <div class="ship-selector">
                 <button id="prev-ship-btn" class="upgrade-btn" style="display:inline-block; width:auto;">&lt;</button>
                 <div id="ship-info" style="display:inline-block; margin: 0 15px; text-align:center; min-width: 150px;">
-                  <h4 id="ship-name" style="margin:0; color:#00ffcc;">Nave Básica</h4>
-                  <p id="ship-status" style="margin:5px 0; font-size:0.9rem;">Possuída</p>
+                  <h4 id="ship-name" style="margin:0; color:#00ffcc;">Basic Ship</h4>
+                  <p id="ship-status" style="margin:5px 0; font-size:0.9rem;">Owned</p>
                 </div>
                 <button id="next-ship-btn" class="upgrade-btn" style="display:inline-block; width:auto;">&gt;</button>
               </div>
-              <button id="buy-ship-btn" class="upgrade-btn" style="margin-top: 10px; display:none;">Comprar por <span id="ship-cost">5000</span> Sucata</button>
+              <button id="buy-ship-btn" class="upgrade-btn" style="margin-top: 10px; display:none;">Buy for <span id="ship-cost">5000</span> Scrap</button>
             </div>
           </div>
         </div>
 
-        <button id="start-btn" class="hidden">Lançar Nave</button>
+        <button id="start-btn" class="hidden">Launch Ship</button>
       </div>
       <div id="hud" class="screen hidden">
         <div class="stats-left">
-          <div class="score">Pontos: <span id="score-val">0</span></div>
+          <div class="score">Score: <span id="score-val">0</span></div>
           <div class="heat-wrapper">
-            <span>Calor:</span>
+            <span>Heat:</span>
             <div id="heat-bar-bg">
               <div id="heat-bar"></div>
             </div>
           </div>
         </div>
-        <div class="health">Vida: <span id="health-val">100</span>%</div>
+        <div class="health">Health: <span id="health-val">100</span>%</div>
       </div>
 
       <!-- Mobile Controls (Hidden by default) -->
@@ -83,13 +83,13 @@
       </div>
 
       <div id="wave-banner" class="screen hidden wave-banner">
-        <h2 id="wave-val">ONDA 1</h2>
+        <h2 id="wave-val">WAVE 1</h2>
       </div>
 
       <div id="pause-screen" class="screen hidden">
-        <h2>PAUSADO</h2>
-        <button id="resume-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Retomar</button>
-        <button id="quit-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Voltar à Base</button>
+        <h2>PAUSED</h2>
+        <button id="resume-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Resume</button>
+        <button id="quit-btn" class="upgrade-btn" style="margin: 10px; font-size: 1.5rem; text-align: center;">Return to Base</button>
       </div>
 
       <!-- Floating Text Container -->
