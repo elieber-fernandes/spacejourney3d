@@ -6,7 +6,7 @@ export class WaveManager {
         this.currentWave = 1;
         this.enemiesRemainingToSpawn = 0;
         this.spawnTimer = 0;
-        this.spawnRate = 60; // frames
+        this.spawnRate = 90; // frames (slower start to increase retention)
         this.state = 'WAVE_START'; // WAVE_START, SPAWNING, WAITING_CLEAR, WAVE_COMPLETE
         this.waveTimer = 0;
         this.currentTypes = [];
@@ -17,8 +17,8 @@ export class WaveManager {
         this.state = 'WAVE_START';
         this.waveTimer = 180; // 3 seconds at 60fps
 
-        // Dynamic spawn rate (gets faster each wave, caps at 15 frames)
-        this.spawnRate = Math.max(15, 60 - (waveNum * 4));
+        // Dynamic spawn rate (gets faster each wave, caps at 20 frames)
+        this.spawnRate = Math.max(20, 90 - (waveNum * 6));
 
         if (waveNum % 10 === 0) {
             // Dash Boss Wave (Level 10, 20, 30)
@@ -30,12 +30,12 @@ export class WaveManager {
             this.enemiesRemainingToSpawn = 1 + Math.floor(waveNum / 5);
             this.currentTypes = [{ type: 'boss', weight: 100 }, { type: 'basic', weight: 20 }];
         } else if (waveNum <= 2) {
-            // Intro: Just basics
-            this.enemiesRemainingToSpawn = 5 + (waveNum * 3); // W1: 8, W2: 11
+            // Intro: Just basics, but stretch the duration so player can enjoy early game
+            this.enemiesRemainingToSpawn = 10 + (waveNum * 5); // W1: 15, W2: 20
             this.currentTypes = [{ type: 'basic', weight: 100 }];
         } else if (waveNum <= 4) {
             // Introduce shooters
-            this.enemiesRemainingToSpawn = 10 + (waveNum * 3); // W3: 19, W4: 22
+            this.enemiesRemainingToSpawn = 15 + (waveNum * 5); // W3: 30, W4: 35
             this.currentTypes = [{ type: 'basic', weight: 70 }, { type: 'shooter', weight: 30 }];
         } else if (waveNum <= 9) {
             // Mix of everything basic + kamikaze + tanks

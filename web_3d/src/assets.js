@@ -171,7 +171,7 @@ export function loadAssets(onLoadCallback) {
     gltfLoader.load('assets/power_ups/power_up_vida.glb', (gltf) => models.pu_vida = fixMaterials(gltf));
 
     // Load Models - Shots
-    gltfLoader.load('assets/tiros/laser_beam_inimigos.glb', (gltf) => models.laser_inimigo = fixMaterials(gltf));
+    gltfLoader.load('assets/tiros/laser_beam_inimigo.glb', (gltf) => models.laser_inimigo = fixMaterials(gltf));
     gltfLoader.load('assets/tiros/laser_beam_player.glb', (gltf) => models.laser_player = fixMaterials(gltf));
     gltfLoader.load('assets/tiros/plasma.glb', (gltf) => models.plasma = fixMaterials(gltf));
 }

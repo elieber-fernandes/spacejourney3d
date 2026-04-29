@@ -580,8 +580,8 @@ function animate() {
                             newRecord = true;
                         }
 
-                        // Keep 50% of score as Scrap currency
-                        const earnedScrap = Math.floor(player.score * 0.5);
+                        // Keep 100% of score as Scrap currency
+                        const earnedScrap = player.score;
                         scrap += earnedScrap;
                         saveProgression();
 
@@ -633,8 +633,8 @@ function animate() {
                             newRecord = true;
                         }
 
-                        // Keep 50% of score as Scrap currency
-                        const earnedScrap = Math.floor(player.score * 0.5);
+                        // Keep 100% of score as Scrap currency
+                        const earnedScrap = player.score;
                         scrap += earnedScrap;
                         saveProgression();
 
@@ -672,7 +672,7 @@ function animate() {
                         else playSound(sounds.explosion);
 
                         // Drop powerup
-                        if (Math.random() < 0.2 || (e.isHeavy && Math.random() < 0.5) || e.hp > 100) { // Boss drops guaranteed
+                        if (Math.random() < 0.3 || (e.isHeavy && Math.random() < 0.5) || e.hp > 100) { // Boss drops guaranteed
                             const types = ['health', 'shield', 'plasma_shot', 'spread_shot', 'rapid_fire'];
                             const pType = types[Math.floor(Math.random() * types.length)];
                             powerups.push(new PowerUp(scene, e.mesh.position.x, e.mesh.position.z, pType));
@@ -717,8 +717,8 @@ function animate() {
                             newRecord = true;
                         }
 
-                        // Keep 50% of score as Scrap currency
-                        const earnedScrap = Math.floor(player.score * 0.5);
+                        // Keep 100% of score as Scrap currency
+                        const earnedScrap = player.score;
                         scrap += earnedScrap;
                         saveProgression();
 
@@ -780,10 +780,10 @@ const lblCostMagnet = document.getElementById('cost-magnet');
 function updateShopUI() {
     scrapVal.innerText = scrap;
 
-    // Formula for costs: 1000 + (level * 500)
-    const costHealth = 1000 + (upgHealth * 500);
-    const costHeat = 1000 + (upgHeat * 500);
-    const costMagnet = 1000 + (upgMagnet * 500);
+    // Formula for costs: 250 + (level * 250)
+    const costHealth = 250 + (upgHealth * 250);
+    const costHeat = 250 + (upgHeat * 250);
+    const costMagnet = 250 + (upgMagnet * 250);
 
     lblLvlHealth.innerText = upgHealth;
     lblCostHealth.innerText = upgHealth >= 5 ? 'MAX' : costHealth;
@@ -800,7 +800,7 @@ function updateShopUI() {
 
 if (upgBtnHealth) {
     upgBtnHealth.addEventListener('click', () => {
-        const cost = 1000 + (upgHealth * 500);
+        const cost = 250 + (upgHealth * 250);
         if (scrap >= cost && upgHealth < 5) {
             scrap -= cost;
             upgHealth++;
@@ -809,7 +809,7 @@ if (upgBtnHealth) {
         }
     });
     upgBtnHeat.addEventListener('click', () => {
-        const cost = 1000 + (upgHeat * 500);
+        const cost = 250 + (upgHeat * 250);
         if (scrap >= cost && upgHeat < 5) {
             scrap -= cost;
             upgHeat++;
@@ -818,7 +818,7 @@ if (upgBtnHealth) {
         }
     });
     upgBtnMagnet.addEventListener('click', () => {
-        const cost = 1000 + (upgMagnet * 500);
+        const cost = 250 + (upgMagnet * 250);
         if (scrap >= cost && upgMagnet < 5) {
             scrap -= cost;
             upgMagnet++;

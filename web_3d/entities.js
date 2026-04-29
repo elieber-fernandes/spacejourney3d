@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SkeletonUtils } from 'three/addons/utils/SkeletonUtils.js';
 
 import { models } from './src/assets.js';
 
@@ -312,7 +313,7 @@ export class Player {
 
         const sourceModel = models[modelKey];
         if (sourceModel) {
-            this.mesh = sourceModel.clone();
+            this.mesh = SkeletonUtils.clone(sourceModel);
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = false;
@@ -420,7 +421,7 @@ export class Enemy {
 
         const sourceModel = models[modelKey];
         if (sourceModel) {
-            this.mesh = sourceModel.clone();
+            this.mesh = SkeletonUtils.clone(sourceModel);
             this.mesh.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = false;
@@ -434,7 +435,7 @@ export class Enemy {
             else if (fallbackGeoStr === 'sphere') geo = new THREE.IcosahedronGeometry(1.5);
             else if (fallbackGeoStr === 'dodeca') geo = new THREE.DodecahedronGeometry(2);
 
-            const mat = getSharedMaterial(null, 0xff0000, 0x000000, false, 1); // Fallback material
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Fallback material
             this.mesh = new THREE.Mesh(geo, mat);
             this.mesh.castShadow = false;
         }
