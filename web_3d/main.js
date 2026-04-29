@@ -4,6 +4,17 @@ import { loadAssets, loadingManager, sounds, models } from './src/assets.js';
 import { WaveManager } from './src/managers.js';
 import { ExplosionManager, EngineTrail } from './src/effects.js';
 
+// --- POKI SDK INIT ---
+if (typeof PokiSDK !== 'undefined') {
+    PokiSDK.init().then(() => {
+        console.log("Poki SDK successfully initialized");
+    }).catch(() => {
+        console.log("Initialized, but the user likely has an adblocker");
+    });
+} else {
+    console.warn("Poki SDK not loaded");
+}
+
 // --- GAME STATE ---
 let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER', 'PAUSED'
 let score = 0;
@@ -573,6 +584,9 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
+                        
+                        // --- POKI SDK GAMEPLAY STOP ---
+                        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
 
                         let newRecord = false;
                         if (player.score > highScore) {
@@ -626,6 +640,9 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
+                        
+                        // --- POKI SDK GAMEPLAY STOP ---
+                        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
 
                         let newRecord = false;
                         if (player.score > highScore) {
@@ -710,6 +727,9 @@ function animate() {
 
                     if (player.health <= 0) {
                         gameState = 'GAMEOVER';
+                        
+                        // --- POKI SDK GAMEPLAY STOP ---
+                        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
 
                         let newRecord = false;
                         if (player.score > highScore) {
@@ -950,6 +970,11 @@ startBtn.addEventListener('click', () => {
     obstacles = [];
 
     waveManager.startWave(1);
+    
+    // --- POKI SDK GAMEPLAY START ---
+    if (typeof PokiSDK !== 'undefined') {
+        PokiSDK.gameplayStart();
+    }
 });
 
 // --- ASSETS LOADING ---
@@ -978,7 +1003,34 @@ loadAssets(() => {
     }
 
     scene.background = new THREE.Color(0x000000);
+    
+    // --- POKI SDK LOADING FINISHED ---
+    if (typeof PokiSDK !== 'undefined') {
+        PokiSDK.gameLoadingFinished();
+    }
 });
 
 // START
 animate();
+
+// --- AUTO-PAUSE (Page Visibility API) ---
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        // Pause game if it's currently playing
+        if (gameState === 'PLAYING') {
+            togglePause();
+        }
+        // Suspend audio context to satisfy Poki requirements
+        const audioCtx = THREE.AudioContext.getContext();
+        if (audioCtx.state === 'running') {
+            audioCtx.suspend();
+        }
+    } else {
+        // Resume audio context
+        const audioCtx = THREE.AudioContext.getContext();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        // We do not auto-resume the game loop to give the player time to get ready
+    }
+});
