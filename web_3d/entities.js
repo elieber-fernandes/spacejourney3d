@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SkeletonUtils } from 'three/addons/utils/SkeletonUtils.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 import { models } from './src/assets.js';
 
